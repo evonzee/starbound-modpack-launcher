@@ -3,10 +3,14 @@
     windows_subsystem = "windows"
 )]
 
+mod prefs;
+
+use rfd::FileDialog;
+
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn load_install_location() -> String {
-    return "Some installation location!".to_string();
+    return prefs::get_starbound_dir();
 }
 
 #[tauri::command]
@@ -21,7 +25,17 @@ fn get_installed_version() -> String {
 
 #[tauri::command]
 fn change_starbound_location() -> String {
-    return "somewhere else".to_string();
+
+    if let Some(folder) = FileDialog::new()
+        .set_directory("/")
+        .pick_folder() {
+            match folder.to_str() {
+                None => (),
+                Some(value) => prefs::set_starbound_dir(value.into())
+            }
+    };
+    
+    return load_install_location();
 }
 
 #[tauri::command]
