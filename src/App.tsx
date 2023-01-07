@@ -1,48 +1,75 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
+import { listen } from '@tauri-apps/api/event';
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+class StatusMessage {
+  public message : string = "";
+}
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke("greet", { name }));
+function App() {
+  const [installLocation, setInstallLocation] = useState("");
+  const [installedVersion, setInstalledVersion] = useState("None");
+  const [availableVersion, setAvailableVersion] = useState("Checking...");
+  const [statusMessage, setStatusMessage] = useState("status here");
+  const [loaded, setLoaded] = useState(false);
+  
+  async function loadInstallLocation() {
+    setInstallLocation(await invoke("load_install_location"));
   }
+
+  async function getAvailableVersion() {
+    setAvailableVersion(await invoke("get_available_version"));
+  }
+
+  async function getInstalledVersion() {
+    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+    setInstalledVersion(await invoke("get_installed_version"));
+  }
+
+  async function changeStarboundLocation() {
+    setInstallLocation(await invoke("change_starbound_location"));
+  }
+
+  async function update() {
+    await invoke("update");
+    await getInstalledVersion();
+  }
+
+  async function launch() {
+    if(!loaded) {
+      setLoaded(true);
+      await loadInstallLocation();
+      await getInstalledVersion();
+      await getAvailableVersion();
+      await listen<StatusMessage>('status', (event) => {
+        console.log("got event ", event);
+        setStatusMessage(event.payload.message);
+      });
+    }
+  }
+  
+  launch();
 
   return (
     <div className="container">
-      <h1>Welcome to Tauri!</h1>
+      <h1>Welcome to Grayles Starbound Modpack!</h1>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <p>Starbound location: {installLocation}</p>
+      <p>Modpack version installed: {installedVersion}</p>
+      <p>
+        Modpack version available: {availableVersion} 
+        {installedVersion != availableVersion ? <button type="button" onClick={() => update()}>Update</button> : <span> - Up to date!</span> }
+      </p>
+
+      <button type="button" onClick={() => changeStarboundLocation()}>Change Starbound location</button>
+      <button type="button" onClick={() => getAvailableVersion()}>Check for Updates</button> 
+      <button type="button" onClick={() => launch()}>Launch!</button>
+
+      <div>
+        { statusMessage }
       </div>
-
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <div className="row">
-        <div>
-          <input
-            id="greet-input"
-            onChange={(e) => setName(e.currentTarget.value)}
-            placeholder="Enter a name..."
-          />
-          <button type="button" onClick={() => greet()}>
-            Greet
-          </button>
-        </div>
-      </div>
-      <p>{greetMsg}</p>
     </div>
   );
 }
