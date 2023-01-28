@@ -8,11 +8,15 @@ mod prefs;
 
 use core::fmt;
 use std::{
+    cmp::min,
     error::Error,
-    fs::{self},
+    fs::{self, File},
+    io::Write,
     path::{Path, PathBuf},
 };
 
+use futures_util::StreamExt;
+use reqwest::Client;
 use rfd::FileDialog;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -22,8 +26,18 @@ fn load_install_location() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn get_available_version() -> String {
-    return "v1.0.2".to_string();
+async fn get_available_version(window: tauri::Window) -> String {
+    let res = download_file_to_mods(
+        &window,
+        "https://www.grayles.com/modpack/mods.json",
+        "mods.json.new",
+    )
+    .await;
+
+    return match res {
+        Ok(()) => get_modpack_version("mods.json.new"),
+        Err(val) => val,
+    };
 }
 
 #[tauri::command]
@@ -45,7 +59,7 @@ fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
                 match prefs::set_starbound_dir(value.into()) {
                     Ok(()) => (),
                     Err(_) => {
-                        set_status(window, "Couldn't find starbound in the selected location!");
+                        set_status(&window, "Couldn't find starbound in the selected location!");
                         return Err("Failed to save preferences file!".into());
                     }
                 }
@@ -54,7 +68,7 @@ fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
                     Ok(()) => (),
                     Err(err) => {
                         set_status(
-                            window,
+                            &window,
                             format!(
                                 "Couldn't write modpack config file in the selected location! {}",
                                 err
@@ -74,7 +88,7 @@ fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
 #[tauri::command]
 async fn update(window: tauri::Window) {
     // do something
-    set_status(window, "Starting update process");
+    set_status(&window, "Starting update process");
     ();
 }
 
@@ -92,12 +106,61 @@ impl fmt::Display for StarboundNotFound {
     }
 }
 
-fn get_modpack_version(filename: &str) -> String {
-    let loc = prefs::get_starbound_dir().unwrap_or(String::new());
-    let mut path = Path::new(&loc).to_path_buf();
-    path.push("grayles/mods/");
-    path.push(filename);
+async fn download_file_to_mods(
+    window: &tauri::Window,
+    url: &str,
+    filename: &str,
+) -> Result<(), String> {
+    let client = Client::new();
 
+    // Reqwest setup
+    let res = client
+        .get(url)
+        .send()
+        .await
+        .or(Err(format!("Failed to GET from '{}'", &url)))?;
+    let total_size = res
+        .content_length()
+        .ok_or(format!("Failed to get content length from '{}'", &url))?;
+
+    // download chunks
+
+    let mut path = get_mods_dir();
+    path.push(filename);
+    let path = path.to_str().unwrap_or("nofilename");
+
+    let mut file = File::create(path).or(Err(format!("Failed to create file '{}'", path)))?;
+    let mut downloaded: u64 = 0;
+    let mut stream = res.bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item.or(Err(format!("Error while downloading file")))?;
+        file.write_all(&chunk)
+            .or(Err(format!("Error while writing to file")))?;
+        let new = min(downloaded + (chunk.len() as u64), total_size);
+        downloaded = new;
+        set_status(
+            window,
+            format!(
+                "Downloading {}: {} of {} bytes",
+                filename, downloaded, total_size
+            )
+            .as_str(),
+        );
+    }
+
+    // update statusbar pb.finish_with_message(&format!("Downloaded {} to {}", url, path));
+    set_status(
+        window,
+        format!("Finished Downloading {}", filename).as_str(),
+    );
+
+    return Ok(());
+}
+
+fn get_modpack_version(filename: &str) -> String {
+    let mut path = get_mods_dir();
+    path.push(filename);
     if let Some(configpath) = path.to_str() {
         let maybe_config = modinfo::read_mods(configpath);
         return match maybe_config {
@@ -109,6 +172,14 @@ fn get_modpack_version(filename: &str) -> String {
     } else {
         return "Starbound path is not selected".into();
     }
+}
+
+fn get_mods_dir() -> PathBuf {
+    let loc = prefs::get_starbound_dir().unwrap_or(String::new());
+    let mut path = Path::new(&loc).to_path_buf();
+    path.push("grayles/mods/");
+
+    return path;
 }
 
 fn scan_and_write_config_file() -> Result<(), Box<dyn Error>> {
@@ -156,7 +227,7 @@ struct StatusMessage {
     message: String,
 }
 
-fn set_status(window: tauri::Window, message: &str) {
+fn set_status(window: &tauri::Window, message: &str) {
     let result = window.emit(
         "status",
         StatusMessage {
