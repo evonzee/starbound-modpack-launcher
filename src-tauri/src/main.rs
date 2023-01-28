@@ -3,11 +3,15 @@
     windows_subsystem = "windows"
 )]
 
-mod prefs;
 mod modinfo;
+mod prefs;
 
 use core::fmt;
-use std::{path::{Path, PathBuf}, error::Error, fs::{self}};
+use std::{
+    error::Error,
+    fs::{self},
+    path::{Path, PathBuf},
+};
 
 use rfd::FileDialog;
 
@@ -18,7 +22,7 @@ fn load_install_location() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_available_version() -> String {
+async fn get_available_version() -> String {
     return "v1.0.2".to_string();
 }
 
@@ -29,31 +33,41 @@ fn get_installed_version() -> String {
 
 #[tauri::command]
 fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
-
     let initial_dir = match load_install_location() {
         Ok(loc) => loc,
-        Err(_) => "/".to_string()
+        Err(_) => "/".to_string(),
     };
 
-    if let Some(folder) = FileDialog::new()
-        .set_directory(initial_dir)
-        .pick_folder() {
-            match folder.to_str() {
-                None => (),
-                Some(value) => {
-                    match prefs::set_starbound_dir(value.into()) {
-                        Ok(()) => (),
-                        Err(_) => {set_status(window, "Couldn't find starbound in the selected location!"); return Err("Failed to save preferences file!".into())}
+    if let Some(folder) = FileDialog::new().set_directory(initial_dir).pick_folder() {
+        match folder.to_str() {
+            None => (),
+            Some(value) => {
+                match prefs::set_starbound_dir(value.into()) {
+                    Ok(()) => (),
+                    Err(_) => {
+                        set_status(window, "Couldn't find starbound in the selected location!");
+                        return Err("Failed to save preferences file!".into());
                     }
-                    
-                    match scan_and_write_config_file() {
-                        Ok(()) => (),
-                        Err(err) => {set_status(window, format!("Couldn't write modpack config file in the selected location! {}", err).as_str()); return Err("Failed to write Starbound config file!".into()) }
+                }
+
+                match scan_and_write_config_file() {
+                    Ok(()) => (),
+                    Err(err) => {
+                        set_status(
+                            window,
+                            format!(
+                                "Couldn't write modpack config file in the selected location! {}",
+                                err
+                            )
+                            .as_str(),
+                        );
+                        return Err("Failed to write Starbound config file!".into());
                     }
                 }
             }
+        }
     };
-    
+
     return load_install_location();
 }
 
@@ -87,10 +101,11 @@ fn get_modpack_version(filename: &str) -> String {
     if let Some(configpath) = path.to_str() {
         let maybe_config = modinfo::read_mods(configpath);
         return match maybe_config {
-            Ok(config) => config.modpack_version().unwrap_or("Mod config file is missing version metadata!".to_string()) ,
-            Err(_) => "No modpack found!".into()
+            Ok(config) => config
+                .modpack_version()
+                .unwrap_or("Mod config file is missing version metadata!".to_string()),
+            Err(_) => "No modpack found!".into(),
         };
-
     } else {
         return "Starbound path is not selected".into();
     }
@@ -99,7 +114,7 @@ fn get_modpack_version(filename: &str) -> String {
 fn scan_and_write_config_file() -> Result<(), Box<dyn Error>> {
     let loc = prefs::get_starbound_dir()?;
     let path = Path::new(&loc);
-    
+
     for entry in path.read_dir()? {
         let subpath = entry?.path();
         if subpath.file_name().ok_or("")?.eq_ignore_ascii_case("linux") {
@@ -107,11 +122,12 @@ fn scan_and_write_config_file() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    return Err(Box::new(StarboundNotFound("No linux or windows subdirectory found in selected folder!".into())));
+    return Err(Box::new(StarboundNotFound(
+        "No linux or windows subdirectory found in selected folder!".into(),
+    )));
 }
 
 fn write_config_file_to_dir(path: PathBuf) -> Result<(), Box<dyn Error>> {
-
     println!("Found config dir {:?}", path.to_str());
     let config = include_str!("modpack.config");
     let mut filepath = path.clone();
@@ -122,38 +138,42 @@ fn write_config_file_to_dir(path: PathBuf) -> Result<(), Box<dyn Error>> {
     let mut grayles_dir = path.clone();
     grayles_dir.push("../grayles");
     fs::create_dir(grayles_dir)?;
-    
+
     let mut grayles_dir = path.clone();
     grayles_dir.push("../grayles/storage");
     fs::create_dir(grayles_dir)?;
-    
+
     let mut grayles_dir = path.clone();
     grayles_dir.push("../grayles/mods");
     fs::create_dir(grayles_dir)?;
-    
+
     return Ok(());
 }
-
 
 // the payload type must implement `Serialize` and `Clone`.
 #[derive(Clone, serde::Serialize)]
 struct StatusMessage {
-  message: String,
+    message: String,
 }
 
 fn set_status(window: tauri::Window, message: &str) {
-    let result = window.emit("status", StatusMessage { message: message.into() });
+    let result = window.emit(
+        "status",
+        StatusMessage {
+            message: message.into(),
+        },
+    );
     match result {
         Ok(()) => true,
-        Err(_) => false
+        Err(_) => false,
     };
 }
 
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            load_install_location, 
-            get_available_version, 
+            load_install_location,
+            get_available_version,
             get_installed_version,
             change_starbound_location,
             update,
