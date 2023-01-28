@@ -4,6 +4,7 @@
 )]
 
 mod prefs;
+mod modinfo;
 
 use core::fmt;
 use std::{path::{Path, PathBuf}, error::Error, fs::{self}};
@@ -23,7 +24,7 @@ fn get_available_version() -> String {
 
 #[tauri::command]
 fn get_installed_version() -> String {
-    return "v1.0.1".to_string();
+    return get_modpack_version("mods.json");
 }
 
 #[tauri::command]
@@ -74,6 +75,24 @@ impl Error for StarboundNotFound {}
 impl fmt::Display for StarboundNotFound {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "There is an error: {}", self.0)
+    }
+}
+
+fn get_modpack_version(filename: &str) -> String {
+    let loc = prefs::get_starbound_dir().unwrap_or(String::new());
+    let mut path = Path::new(&loc).to_path_buf();
+    path.push("grayles/mods/");
+    path.push(filename);
+
+    if let Some(configpath) = path.to_str() {
+        let maybe_config = modinfo::read_mods(configpath);
+        return match maybe_config {
+            Ok(config) => config.modpack_version().unwrap_or("Mod config file is missing version metadata!".to_string()) ,
+            Err(_) => "No modpack found!".into()
+        };
+
+    } else {
+        return "Starbound path is not selected".into();
     }
 }
 
