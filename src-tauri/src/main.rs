@@ -16,6 +16,7 @@ use std::{
 };
 
 use futures_util::StreamExt;
+use modinfo::ModpackConfig;
 use reqwest::Client;
 use rfd::FileDialog;
 
@@ -159,19 +160,27 @@ async fn download_file_to_mods(
 }
 
 fn get_modpack_version(filename: &str) -> String {
+    let maybe_config = get_modpack_config(filename);
+
+    return match maybe_config {
+        Ok(config) => config
+            .modpack_version()
+            .unwrap_or("Mod config file is missing version metadata!".to_string()),
+        Err(err) => err,
+    };
+}
+
+fn get_modpack_config(filename: &str) -> Result<ModpackConfig, String> {
     let mut path = get_mods_dir();
     path.push(filename);
     if let Some(configpath) = path.to_str() {
-        let maybe_config = modinfo::read_mods(configpath);
-        return match maybe_config {
-            Ok(config) => config
-                .modpack_version()
-                .unwrap_or("Mod config file is missing version metadata!".to_string()),
-            Err(_) => "No modpack found!".into(),
+        return match modinfo::read_mods(configpath) {
+            Ok(value) => Ok(value),
+            Err(err) => Err(err.to_string()),
         };
-    } else {
-        return "Starbound path is not selected".into();
     }
+
+    return Err("Starbound path is not configured!".to_string());
 }
 
 fn get_mods_dir() -> PathBuf {
