@@ -60,7 +60,7 @@ fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
                 match prefs::set_starbound_dir(value.into()) {
                     Ok(()) => (),
                     Err(_) => {
-                        set_status(&window, "Couldn't find starbound in the selected location!");
+                        log(&window, "Couldn't find starbound in the selected location!");
                         return Err("Failed to save preferences file!".into());
                     }
                 }
@@ -68,7 +68,7 @@ fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
                 match scan_and_write_config_file() {
                     Ok(()) => (),
                     Err(err) => {
-                        set_status(
+                        log(
                             &window,
                             format!(
                                 "Couldn't write modpack config file in the selected location! {}",
@@ -88,9 +88,45 @@ fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
 
 #[tauri::command]
 async fn update(window: tauri::Window) {
-    // do something
-    set_status(&window, "Starting update process");
+    log(&window, "Starting update process");
+
+    let config = get_modpack_config("mods.json.new").unwrap();
+    let oldconfig = get_modpack_config("mods.json").ok();
+
+    remove_old_mods(&window, &oldconfig, &config);
+    download_new_mods(&window, &oldconfig, &config).await;
+
     ();
+}
+
+fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) {
+    if let Some(old) = oldconfig {
+        for modinfo in old.mods.iter() {
+            if !config.mods.iter().any(|newmod| {
+                return modinfo.name == newmod.name && modinfo.last_change == newmod.last_change;
+            }) {
+                // remove mod
+                log(window, format!("Removing old mod {}", modinfo.name).as_str());
+            }
+        }
+    }
+    log(window, "Finished removing old mods");
+}
+
+async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) {
+    let mods = config.mods.iter()
+        .filter(|newmod| {
+            if let Some(old) = oldconfig {
+                return !old.mods.iter().any(|modinfo| {
+                    return modinfo.name == newmod.name && modinfo.last_change == newmod.last_change;
+                })
+            }
+            return true;
+        });
+    
+    for modinfo in mods {
+        log(window, format!("Downloading new mod {}", modinfo.name).as_str());
+    }
 }
 
 #[tauri::command]
@@ -151,7 +187,7 @@ async fn download_file_to_mods(
     }
 
     // update statusbar pb.finish_with_message(&format!("Downloaded {} to {}", url, path));
-    set_status(
+    log(
         window,
         format!("Finished Downloading {}", filename).as_str(),
     );
@@ -248,6 +284,19 @@ struct StatusMessage {
 fn set_status(window: &tauri::Window, message: &str) {
     let result = window.emit(
         "status",
+        StatusMessage {
+            message: message.into(),
+        },
+    );
+    match result {
+        Ok(()) => true,
+        Err(_) => false,
+    };
+}
+
+fn log(window: &tauri::Window, message: &str) {
+    let result = window.emit(
+        "log",
         StatusMessage {
             message: message.into(),
         },

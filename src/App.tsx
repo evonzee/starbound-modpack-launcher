@@ -13,6 +13,7 @@ function App() {
   const [installedVersion, setInstalledVersion] = useState("None");
   const [availableVersion, setAvailableVersion] = useState("Checking...");
   const [statusMessage, setStatusMessage] = useState("status here");
+  const [logBuffer, setLogBuffer] = useState(["App log here\n", <br/>]);
   const [loaded, setLoaded] = useState(false);
   
   async function loadInstallLocation() {
@@ -47,6 +48,11 @@ function App() {
         console.log("got event ", event);
         setStatusMessage(event.payload.message);
       });
+      await listen<StatusMessage>('log', (event) => {
+        console.log("got event ", event);
+        setStatusMessage(event.payload.message);
+        setLogBuffer(old => [event.payload.message, <br/>, ...old]);
+      })
     }
   }
   
@@ -70,6 +76,9 @@ function App() {
       <div>
         { statusMessage }
       </div>
+      <pre className="logbox">
+        { logBuffer }
+      </pre>
     </div>
   );
 }

@@ -100,3 +100,10 @@ button {
     background-color: #0f0f0f98;
   }
 }
+
+.logbox { 
+  text-align: left;
+  height: 350px;
+  background-color: white;
+  overflow-y: scroll;
+}
