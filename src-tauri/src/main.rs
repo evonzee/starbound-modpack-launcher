@@ -94,9 +94,16 @@ async fn update(window: tauri::Window) {
     let oldconfig = get_modpack_config("mods.json").ok();
 
     remove_old_mods(&window, &oldconfig, &config);
-    download_new_mods(&window, &oldconfig, &config).await;
+    let res = download_new_mods(&window, &oldconfig, &config).await.unwrap_or(false);
 
-    ();
+    if res {
+        download_file_to_mods(
+            &window,
+            "https://www.grayles.com/modpack/mods.json",
+            "mods.json",
+        )
+        .await.unwrap();
+    }
 }
 
 fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) {
@@ -113,7 +120,7 @@ fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, co
     log(window, "Finished removing old mods");
 }
 
-async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) {
+async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) -> Result<bool, Box<dyn Error>> {
     let mods = config.mods.iter()
         .filter(|newmod| {
             if let Some(old) = oldconfig {
@@ -128,8 +135,10 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
         log(window, format!("Downloading new mod {}", modinfo.name).as_str());
         let modfile = format!("{}.pak", modinfo.name);
         let url = format!("https://www.grayles.com/modpack/files/{}.pak", modinfo.name);
-        download_file_to_mods(window, url.as_str(), modfile.as_str()).await;
+        download_file_to_mods(window, url.as_str(), modfile.as_str()).await?;
     }
+
+    Ok(true)
 }
 
 #[tauri::command]
@@ -205,7 +214,7 @@ fn get_modpack_version(filename: &str) -> String {
         Ok(config) => config
             .modpack_version()
             .unwrap_or("Mod config file is missing version metadata!".to_string()),
-        Err(err) => err,
+        Err(_) => "No modpack config found, or file is corrupted".to_string(),
     };
 }
 
