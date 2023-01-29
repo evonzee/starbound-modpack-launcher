@@ -114,6 +114,9 @@ fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, co
             }) {
                 // remove mod
                 log(window, format!("Removing old mod {}", modinfo.name).as_str());
+                if remove_file_from_mods(window, format!("{}.pak", modinfo.name).as_str()).is_err() {
+                    log(window, "Failed to remove file!");
+                }
             }
         }
     }
@@ -154,6 +157,13 @@ impl fmt::Display for StarboundNotFound {
         write!(f, "There is an error: {}", self.0)
     }
 }
+fn remove_file_from_mods(window: &tauri::Window, filename: &str) -> Result<(), String> {
+    let mut path = get_mods_dir();
+    path.push(filename);
+    let path = path.to_str().unwrap_or("nofilename");
+
+    fs::remove_file(path).or(Err("Failed to remove file!".to_string()))
+}
 
 async fn download_file_to_mods(
     window: &tauri::Window,
@@ -168,6 +178,11 @@ async fn download_file_to_mods(
         .send()
         .await
         .or(Err(format!("Failed to GET from '{}'", &url)))?;
+    if !res.status().is_success() {
+        log(window, format!("Failed to download {}!", filename).as_str());
+        return Err("Error downloading file!".to_string());
+    }
+
     let total_size = res
         .content_length()
         .ok_or(format!("Failed to get content length from '{}'", &url))?;
