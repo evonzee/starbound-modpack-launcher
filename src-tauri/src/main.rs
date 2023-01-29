@@ -126,6 +126,9 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
     
     for modinfo in mods {
         log(window, format!("Downloading new mod {}", modinfo.name).as_str());
+        let modfile = format!("{}.pak", modinfo.name);
+        let url = format!("https://www.grayles.com/modpack/files/{}.pak", modinfo.name);
+        download_file_to_mods(window, url.as_str(), modfile.as_str()).await;
     }
 }
 
