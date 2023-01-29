@@ -191,6 +191,9 @@ fn scan_and_write_config_file() -> Result<(), Box<dyn Error>> {
         if subpath.file_name().ok_or("")?.eq_ignore_ascii_case("linux") {
             return write_config_file_to_dir(subpath);
         }
+        if subpath.file_name().ok_or("")?.eq_ignore_ascii_case("win64") {
+            return write_config_file_to_dir(subpath);
+        }
     }
 
     return Err(Box::new(StarboundNotFound(
