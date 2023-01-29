@@ -79,6 +79,7 @@ function App() {
       <pre className="logbox">
         { logBuffer }
       </pre>
+      <button type="button" onClick={() => setLogBuffer([])}>Clear Log</button>
     </div>
   );
 }
