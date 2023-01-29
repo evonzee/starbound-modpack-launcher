@@ -211,19 +211,19 @@ fn write_config_file_to_dir(path: PathBuf) -> Result<(), Box<dyn Error>> {
 
     let mut grayles_dir = path.clone();
     grayles_dir.push("../grayles");
-    if(!grayles_dir.exists()) {
+    if !grayles_dir.exists() {
         fs::create_dir(grayles_dir)?;
     }
 
     let mut grayles_dir = path.clone();
     grayles_dir.push("../grayles/storage");
-    if(!grayles_dir.exists()) {
+    if !grayles_dir.exists() {
         fs::create_dir(grayles_dir)?;
     }
 
     let mut grayles_dir = path.clone();
     grayles_dir.push("../grayles/mods");
-    if(!grayles_dir.exists()) {
+    if !grayles_dir.exists() {
         fs::create_dir(grayles_dir)?;
     }
 
