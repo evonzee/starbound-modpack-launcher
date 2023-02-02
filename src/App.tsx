@@ -39,6 +39,10 @@ function App() {
   }
 
   async function launch() {
+    await invoke("launch");
+  }
+
+  async function init() {
     if(!loaded) {
       setLoaded(true);
       await loadInstallLocation();
@@ -56,7 +60,7 @@ function App() {
     }
   }
   
-  launch();
+  init();
 
   return (
     <div className="container">
