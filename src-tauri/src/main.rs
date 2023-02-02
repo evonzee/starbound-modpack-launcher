@@ -147,7 +147,7 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
 }
 
 #[tauri::command]
-fn launch(window: tauri::Window) {
+async fn launch(window: tauri::Window) {
     let initial_dir = match load_install_location() {
         Ok(loc) => Path::new(&loc).to_path_buf(),
         Err(_) => {
@@ -156,14 +156,14 @@ fn launch(window: tauri::Window) {
         },
     };
     log(&window, "Launching starbound...");
-    log(&window, launch_starbound(initial_dir).as_str());
+    log(&window, launch_starbound(initial_dir).await.as_str());
 }
 
 #[cfg(target_os = "macos")]
-fn launch_starbound(mut path: PathBuf) ->  String {
+async fn launch_starbound(mut path: PathBuf) ->  String {
 }
 #[cfg(target_os = "linux")]
-fn launch_starbound(mut path: PathBuf) -> String  {
+async fn launch_starbound(mut path: PathBuf) -> String  {
     path.push("linux");
     let executable = "starbound";
     let mut env = HashMap::new();
@@ -172,7 +172,7 @@ fn launch_starbound(mut path: PathBuf) -> String  {
     run_starbound(path, executable, env)
 }
 #[cfg(target_os = "windows")]
-fn launch_starbound(mut path: PathBuf) ->  String  {
+async fn launch_starbound(mut path: PathBuf) ->  String  {
     path.push("win64");
     let executable = "starbound.exe";
     let mut env = HashMap::new();
