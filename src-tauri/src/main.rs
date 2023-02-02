@@ -9,6 +9,8 @@ mod prefs;
 use core::fmt;
 use std::{
     cmp::min,
+    collections::HashMap,
+    env,
     error::Error,
     fs::{self, File},
     io::Write,
@@ -162,18 +164,20 @@ fn launch_starbound(mut path: PathBuf) ->  String {
 }
 #[cfg(target_os = "linux")]
 fn launch_starbound(mut path: PathBuf) -> String  {
-    use std::{env, collections::HashMap};
-
     path.push("linux");
     let executable = "starbound";
     let mut env = HashMap::new();
     env.insert("LD_LIBRARY_PATH", format!("./:{}", env::var("LD_LIBRARY_PATH").unwrap_or("".to_string()))); 
 
-    run_starbound(path, executable, env) // -bootconfig grayles-modpack.config"
+    run_starbound(path, executable, env)
 }
 #[cfg(target_os = "windows")]
 fn launch_starbound(mut path: PathBuf) ->  String  {
+    path.push("win64");
+    let executable = "starbound.exe";
+    let mut env = HashMap::new();
 
+    run_starbound(path, executable, env)
 }
 
 fn run_starbound(mut path: PathBuf, executable: &str, env: std::collections::HashMap<&str, String>) -> String {
@@ -182,6 +186,8 @@ fn run_starbound(mut path: PathBuf, executable: &str, env: std::collections::Has
     path.push(executable);
     let mut command = std::process::Command::new(path);
     command.current_dir(cwd);
+    command.arg("-bootconfig");
+    command.arg("grayles-modpack.config");
 
     for ele in env {
         command.env(ele.0, ele.1);    
