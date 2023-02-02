@@ -28,7 +28,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "starbound-launcher.base10.org",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
