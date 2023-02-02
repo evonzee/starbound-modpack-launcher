@@ -23,7 +23,7 @@ use rfd::FileDialog;
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn load_install_location() -> Result<String, String> {
-    return prefs::get_starbound_dir();
+    prefs::get_starbound_dir()
 }
 
 #[tauri::command]
@@ -35,15 +35,15 @@ async fn get_available_version(window: tauri::Window) -> String {
     )
     .await;
 
-    return match res {
+    match res {
         Ok(()) => get_modpack_version("mods.json.new"),
         Err(val) => val,
-    };
+    }
 }
 
 #[tauri::command]
 fn get_installed_version() -> String {
-    return get_modpack_version("mods.json");
+    get_modpack_version("mods.json")
 }
 
 #[tauri::command]
@@ -83,7 +83,7 @@ fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
         }
     };
 
-    return load_install_location();
+    load_install_location()
 }
 
 #[tauri::command]
@@ -110,11 +110,11 @@ fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, co
     if let Some(old) = oldconfig {
         for modinfo in old.mods.iter() {
             if !config.mods.iter().any(|newmod| {
-                return modinfo.name == newmod.name && modinfo.last_change == newmod.last_change;
+                modinfo.name == newmod.name && modinfo.last_change == newmod.last_change
             }) {
                 // remove mod
                 log(window, format!("Removing old mod {}", modinfo.name).as_str());
-                if remove_file_from_mods(window, format!("{}.pak", modinfo.name).as_str()).is_err() {
+                if remove_file_from_mods(format!("{}.pak", modinfo.name).as_str()).is_err() {
                     log(window, "Failed to remove file!");
                 }
             }
@@ -128,10 +128,10 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
         .filter(|newmod| {
             if let Some(old) = oldconfig {
                 return !old.mods.iter().any(|modinfo| {
-                    return modinfo.name == newmod.name && modinfo.last_change == newmod.last_change;
+                    modinfo.name == newmod.name && modinfo.last_change == newmod.last_change
                 })
             }
-            return true;
+            true
         });
     
     for modinfo in mods {
@@ -145,8 +145,57 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
 }
 
 #[tauri::command]
-fn launch() -> () {
-    // do something
+fn launch(window: tauri::Window) {
+    let initial_dir = match load_install_location() {
+        Ok(loc) => Path::new(&loc).to_path_buf(),
+        Err(_) => {
+            log(&window, "Starbound location is not set; cannot launch");
+            return;
+        },
+    };
+    log(&window, "Launching starbound...");
+    log(&window, launch_starbound(initial_dir).as_str());
+}
+
+#[cfg(target_os = "macos")]
+fn launch_starbound(mut path: PathBuf) ->  String {
+}
+#[cfg(target_os = "linux")]
+fn launch_starbound(mut path: PathBuf) -> String  {
+    use std::{env, collections::HashMap};
+
+    path.push("linux");
+    let executable = "starbound";
+    let mut env = HashMap::new();
+    env.insert("LD_LIBRARY_PATH", format!("./:{}", env::var("LD_LIBRARY_PATH").unwrap_or("".to_string()))); 
+
+    run_starbound(path, executable, env) // -bootconfig grayles-modpack.config"
+}
+#[cfg(target_os = "windows")]
+fn launch_starbound(mut path: PathBuf) ->  String  {
+
+}
+
+fn run_starbound(mut path: PathBuf, executable: &str, env: std::collections::HashMap<&str, String>) -> String {
+    let cwd = path.clone();
+
+    path.push(executable);
+    let mut command = std::process::Command::new(path);
+    command.current_dir(cwd);
+
+    for ele in env {
+        command.env(ele.0, ele.1);    
+    }
+
+    let exitstatus = match command.spawn() {
+        Ok(mut child) => child.wait(),
+        Err(_) => return "Error starting starbound!".to_string()
+    };
+
+    match exitstatus {
+        Ok(status) => if status.success() { "Starbound exited OK" } else { "Starbound exited abnormally!" }
+        Err(_) => "Error getting starbound exit code!",
+    }.to_string()
 }
 
 #[derive(Debug)]
@@ -157,7 +206,7 @@ impl fmt::Display for StarboundNotFound {
         write!(f, "There is an error: {}", self.0)
     }
 }
-fn remove_file_from_mods(window: &tauri::Window, filename: &str) -> Result<(), String> {
+fn remove_file_from_mods(filename: &str) -> Result<(), String> {
     let mut path = get_mods_dir();
     path.push(filename);
     let path = path.to_str().unwrap_or("nofilename");
@@ -198,9 +247,9 @@ async fn download_file_to_mods(
     let mut stream = res.bytes_stream();
 
     while let Some(item) = stream.next().await {
-        let chunk = item.or(Err(format!("Error while downloading file")))?;
+        let chunk = item.or(Err("Error while downloading file"))?;
         file.write_all(&chunk)
-            .or(Err(format!("Error while writing to file")))?;
+            .or(Err("Error while writing to file"))?;
         let new = min(downloaded + (chunk.len() as u64), total_size);
         downloaded = new;
         set_status(
@@ -219,18 +268,18 @@ async fn download_file_to_mods(
         format!("Finished Downloading {}", filename).as_str(),
     );
 
-    return Ok(());
+    Ok(())
 }
 
 fn get_modpack_version(filename: &str) -> String {
     let maybe_config = get_modpack_config(filename);
 
-    return match maybe_config {
+    match maybe_config {
         Ok(config) => config
             .modpack_version()
             .unwrap_or("Mod config file is missing version metadata!".to_string()),
         Err(_) => "No modpack config found, or file is corrupted".to_string(),
-    };
+    }
 }
 
 fn get_modpack_config(filename: &str) -> Result<ModpackConfig, String> {
@@ -243,7 +292,7 @@ fn get_modpack_config(filename: &str) -> Result<ModpackConfig, String> {
         };
     }
 
-    return Err("Starbound path is not configured!".to_string());
+    Err("Starbound path is not configured!".to_string())
 }
 
 fn get_mods_dir() -> PathBuf {
@@ -251,7 +300,7 @@ fn get_mods_dir() -> PathBuf {
     let mut path = Path::new(&loc).to_path_buf();
     path.push("grayles/mods/");
 
-    return path;
+    path
 }
 
 fn scan_and_write_config_file() -> Result<(), Box<dyn Error>> {
@@ -268,9 +317,9 @@ fn scan_and_write_config_file() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    return Err(Box::new(StarboundNotFound(
+    Err(Box::new(StarboundNotFound(
         "No linux or windows subdirectory found in selected folder!".into(),
-    )));
+    )))
 }
 
 fn write_config_file_to_dir(path: PathBuf) -> Result<(), Box<dyn Error>> {
@@ -293,13 +342,13 @@ fn write_config_file_to_dir(path: PathBuf) -> Result<(), Box<dyn Error>> {
         fs::create_dir(grayles_dir)?;
     }
 
-    let mut grayles_dir = path.clone();
+    let mut grayles_dir = path;
     grayles_dir.push("../grayles/mods");
     if !grayles_dir.exists() {
         fs::create_dir(grayles_dir)?;
     }
 
-    return Ok(());
+    Ok(())
 }
 
 // the payload type must implement `Serialize` and `Clone`.
