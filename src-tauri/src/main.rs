@@ -161,6 +161,11 @@ async fn launch(window: tauri::Window) {
 
 #[cfg(target_os = "macos")]
 async fn launch_starbound(mut path: PathBuf) ->  String {
+    path.push("osx");
+    let executable = "Starbound.app/Contents/MacOS/starbound";
+    let mut env = HashMap::new();
+
+    run_starbound(path, executable, env)
 }
 #[cfg(target_os = "linux")]
 async fn launch_starbound(mut path: PathBuf) -> String  {
@@ -319,6 +324,9 @@ fn scan_and_write_config_file() -> Result<(), Box<dyn Error>> {
             return write_config_file_to_dir(subpath);
         }
         if subpath.file_name().ok_or("")?.eq_ignore_ascii_case("win64") {
+            return write_config_file_to_dir(subpath);
+        }
+        if subpath.file_name().ok_or("")?.eq_ignore_ascii_case("osx") {
             return write_config_file_to_dir(subpath);
         }
     }
