@@ -197,7 +197,7 @@ async fn launch(window: tauri::Window) {
 async fn launch_starbound(mut path: PathBuf) ->  String {
     path.push("osx");
     let executable = "Starbound.app/Contents/MacOS/starbound";
-    let mut env = HashMap::new();
+    let env = HashMap::new();
 
     run_starbound(path, executable, env)
 }
@@ -214,7 +214,7 @@ async fn launch_starbound(mut path: PathBuf) -> String  {
 async fn launch_starbound(mut path: PathBuf) ->  String  {
     path.push("win64");
     let executable = "starbound.exe";
-    let mut env = HashMap::new();
+    let env = HashMap::new();
 
     run_starbound(path, executable, env)
 }
