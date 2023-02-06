@@ -42,12 +42,13 @@ function App() {
     await invoke("launch");
   }
 
+  async function checkIntegrity() {
+    await invoke("check_integrity");
+  }
+
   async function init() {
     if(!loaded) {
       setLoaded(true);
-      await loadInstallLocation();
-      await getInstalledVersion();
-      await getAvailableVersion();
       await listen<StatusMessage>('status', (event) => {
         console.log("got event ", event);
         setStatusMessage(event.payload.message);
@@ -56,7 +57,10 @@ function App() {
         console.log("got event ", event);
         setStatusMessage(event.payload.message);
         setLogBuffer(old => [event.payload.message, <br/>, ...old]);
-      })
+      });
+      await loadInstallLocation();
+      await getInstalledVersion();
+      await getAvailableVersion();
     }
   }
   
@@ -75,6 +79,7 @@ function App() {
 
       <button type="button" onClick={() => changeStarboundLocation()}>Change Starbound location</button>
       <button type="button" onClick={() => getAvailableVersion()}>Check for Updates</button> 
+      <button type="button" onClick={() => checkIntegrity()}>Check mod files integrity</button> 
       <button type="button" onClick={() => launch()}>Launch!</button>
 
       <div>

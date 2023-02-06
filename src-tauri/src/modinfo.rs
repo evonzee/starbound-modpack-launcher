@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader, error::Error};
+use std::{fs::File, io::BufReader, error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 
@@ -40,26 +40,19 @@ pub struct Mod {
 	pub custom_pak_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub steam_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+	pub checksum: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+	default_priority: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+	calculated_priority: Option<i32>,
     #[serde(skip_serializing)]
     pub metadata: Option<Metadata>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Metadata {
-    pub name: Option<String>,
-    pub friendly_name: Option<String>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub version: Option<String>,
-    pub link: Option<String>,
-    pub steam_content_id: Option<String>,
-    pub tags: Option<String>,
-    pub includes: Option<Vec<String>>,
-    pub requires: Option<Vec<String>>,
-    pub priority: Option<i32>,
-    #[serde(default)]
-    pub dirty: bool,
+pub struct Metadata { // unneeded in launcher; when codebases are combined this will return
 }
 
 impl ModpackConfig {
@@ -68,12 +61,26 @@ impl ModpackConfig {
     }
 }
 
+#[derive(Debug, Clone)]
+struct UnsupportedVersionError;
+impl fmt::Display for UnsupportedVersionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Unsupported modpack metadata version!  Please upgrade the launcher")
+    }
+}
+impl Error for UnsupportedVersionError {}
+
+
 pub fn read_mods(path: &str) -> Result<ModpackConfig, Box<dyn Error>> {
     // Open the file in read-only mode with buffer.
     let file = File::open(path)?;
     let reader = BufReader::new(file);
     let config: ModpackConfig = serde_json::from_reader(reader)?;
     println!("Read {} mods from configuration at {}", config.mods.len(), path);
+
+    if config.format.unwrap_or_default() > 3 { // hardcoded value supported by this version of the launcher
+        return Err(Box::new(UnsupportedVersionError))
+    }
     
     Ok(config)
 }
