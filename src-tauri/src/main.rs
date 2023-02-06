@@ -13,7 +13,7 @@ use std::{
     env,
     error::Error,
     fs::{self, File},
-    io::Write,
+    io::{Write, self},
     path::{Path, PathBuf},
 };
 
@@ -21,6 +21,7 @@ use futures_util::StreamExt;
 use modinfo::ModpackConfig;
 use reqwest::Client;
 use rfd::FileDialog;
+use sha2::{Sha256, Digest};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -138,12 +139,45 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
     
     for modinfo in mods {
         log(window, format!("Downloading new mod {}", modinfo.name).as_str());
-        let modfile = format!("{}.pak", modinfo.name);
+        let filename = format!("{}.pak", modinfo.name);
         let url = format!("https://www.grayles.com/modpack/files/{}.pak", modinfo.name);
-        download_file_to_mods(window, url.as_str(), modfile.as_str()).await?;
+        download_file_to_mods(window, url.as_str(), filename.as_str()).await?;
     }
 
     Ok(true)
+}
+
+#[tauri::command]
+async fn check_integrity(window: tauri::Window) {
+    log(&window, "Checking mod files integrity..");
+    let config = match get_modpack_config("mods.json") {
+        Ok(val) => val,
+        Err(_) => return
+    };
+
+    for modfile in config.mods {
+        log(&window, format!("Checking {}..", modfile.name).as_str());
+        let result = checksum_modfile(modfile.name.as_str());
+        if result.ok() != modfile.checksum {
+            log(&window, format!("Checksum for {} did not match expected value. Redownloading..", modfile.name).as_str());
+            let filename = format!("{}.pak", modfile.name);
+            let url = format!("https://www.grayles.com/modpack/files/{}.pak", modfile.name);
+            download_file_to_mods(&window, url.as_str(), filename.as_str()).await.unwrap();
+        }
+    }
+    log(&window, "Completed checking mod integrity.");
+}
+
+fn checksum_modfile(name: &str) -> io::Result<String> {
+    let mut dir = get_mods_dir();
+    dir.push(format!("{name}.pak"));
+
+    let mut hasher = Sha256::new();
+    let mut file = File::open(dir)?;
+    io::copy(&mut file, &mut hasher)?;
+    let hash_bytes = hasher.finalize();
+    
+    Ok(format!("{hash_bytes:X}"))
 }
 
 #[tauri::command]
@@ -397,6 +431,7 @@ fn main() {
             get_installed_version,
             change_starbound_location,
             update,
+            check_integrity,
             launch
         ])
         .run(tauri::generate_context!())
