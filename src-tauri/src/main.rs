@@ -112,7 +112,7 @@ fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, co
     if let Some(old) = oldconfig {
         for modinfo in old.mods.iter() {
             if !config.mods.iter().any(|newmod| {
-                modinfo.name == newmod.name && modinfo.last_change == newmod.last_change
+                modinfo.name == newmod.name && modinfo.last_change == newmod.last_change && modinfo.checksum == newmod.checksum
             }) {
                 // remove mod
                 log(window, format!("Removing old mod {}", modinfo.name).as_str());
@@ -130,7 +130,7 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
         .filter(|newmod| {
             if let Some(old) = oldconfig {
                 return !old.mods.iter().any(|modinfo| {
-                    modinfo.name == newmod.name && modinfo.last_change == newmod.last_change
+                    modinfo.name == newmod.name && modinfo.last_change == newmod.last_change && modinfo.checksum == newmod.checksum
                 })
             }
             true
