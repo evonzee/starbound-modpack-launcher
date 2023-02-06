@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader, error::Error};
+use std::{fs::File, io::BufReader, error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 
@@ -68,12 +68,26 @@ impl ModpackConfig {
     }
 }
 
+#[derive(Debug, Clone)]
+struct UnsupportedVersionError;
+impl fmt::Display for UnsupportedVersionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Unsupported modpack metadata version!  Please upgrade the launcher")
+    }
+}
+impl Error for UnsupportedVersionError {}
+
+
 pub fn read_mods(path: &str) -> Result<ModpackConfig, Box<dyn Error>> {
     // Open the file in read-only mode with buffer.
     let file = File::open(path)?;
     let reader = BufReader::new(file);
     let config: ModpackConfig = serde_json::from_reader(reader)?;
     println!("Read {} mods from configuration at {}", config.mods.len(), path);
+
+    if config.format.unwrap_or_default() > 2 { // hardcoded value supported by this version of the launcher
+        return Err(Box::new(UnsupportedVersionError))
+    }
     
     Ok(config)
 }
