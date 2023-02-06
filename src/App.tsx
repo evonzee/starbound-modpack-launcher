@@ -45,9 +45,6 @@ function App() {
   async function init() {
     if(!loaded) {
       setLoaded(true);
-      await loadInstallLocation();
-      await getInstalledVersion();
-      await getAvailableVersion();
       await listen<StatusMessage>('status', (event) => {
         console.log("got event ", event);
         setStatusMessage(event.payload.message);
@@ -56,7 +53,10 @@ function App() {
         console.log("got event ", event);
         setStatusMessage(event.payload.message);
         setLogBuffer(old => [event.payload.message, <br/>, ...old]);
-      })
+      });
+      await loadInstallLocation();
+      await getInstalledVersion();
+      await getAvailableVersion();
     }
   }
   
