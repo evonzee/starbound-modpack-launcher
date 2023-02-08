@@ -104,6 +104,8 @@ button {
 .logbox { 
   text-align: left;
   height: 350px;
+  color: black;
   background-color: white;
   overflow-y: scroll;
+
 }
