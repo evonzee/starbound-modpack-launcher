@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "starbound-modpack-launcher",
-    "version": "0.11.0"
+    "version": "0.25.1"
   },
   "tauri": {
     "allowlist": {
