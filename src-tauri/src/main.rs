@@ -17,6 +17,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bytesize::ByteSize;
 use futures_util::StreamExt;
 use modinfo::ModpackConfig;
 use reqwest::Client;
@@ -291,6 +292,7 @@ async fn download_file_to_mods(
     let mut downloaded: u64 = 0;
     let mut stream = res.bytes_stream();
 
+    let total_bytesize = ByteSize(total_size);
     while let Some(item) = stream.next().await {
         let chunk = item.or(Err("Error while downloading file"))?;
         file.write_all(&chunk)
@@ -301,7 +303,7 @@ async fn download_file_to_mods(
             window,
             format!(
                 "Downloading {}: {} of {} bytes",
-                filename, downloaded, total_size
+                filename, ByteSize(downloaded), total_bytesize
             )
             .as_str(),
         );
