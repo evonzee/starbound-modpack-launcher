@@ -33,7 +33,7 @@ fn load_install_location() -> Result<String, String> {
 async fn get_available_version(window: tauri::Window) -> String {
     let res = download_file_to_mods(
         &window,
-        "https://www.grayles.com/modpack/mods.json",
+        "https://sb.base10.org/starbound/modpack/mods.json",
         "mods.json.new",
     )
     .await;
@@ -102,7 +102,7 @@ async fn update(window: tauri::Window) {
     if res {
         download_file_to_mods(
             &window,
-            "https://www.grayles.com/modpack/mods.json",
+            "https://sb.base10.org/starbound/modpack/mods.json",
             "mods.json",
         )
         .await.unwrap();
@@ -140,7 +140,7 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
     for modinfo in mods {
         log(window, format!("Downloading new mod {}", modinfo.name).as_str());
         let filename = format!("{}.pak", modinfo.name);
-        let url = format!("https://www.grayles.com/modpack/files/{}.pak", modinfo.name);
+        let url = format!("https://sb.base10.org/starbound/modpack/files/{}.pak", modinfo.name);
         download_file_to_mods(window, url.as_str(), filename.as_str()).await?;
     }
 
@@ -161,7 +161,7 @@ async fn check_integrity(window: tauri::Window) {
         if result.ok() != modfile.checksum {
             log(&window, format!("Checksum for {} did not match expected value. Redownloading..", modfile.name).as_str());
             let filename = format!("{}.pak", modfile.name);
-            let url = format!("https://www.grayles.com/modpack/files/{}.pak", modfile.name);
+            let url = format!("https://sb.base10.org/starbound/modpack/files/{}.pak", modfile.name);
             download_file_to_mods(&window, url.as_str(), filename.as_str()).await.unwrap();
         }
     }
@@ -226,7 +226,7 @@ fn run_starbound(mut path: PathBuf, executable: &str, env: std::collections::Has
     let mut command = std::process::Command::new(path);
     command.current_dir(cwd);
     command.arg("-bootconfig");
-    command.arg("grayles-modpack.config");
+    command.arg("base10-modpack.config");
 
     for ele in env {
         command.env(ele.0, ele.1);    
@@ -343,7 +343,7 @@ fn get_modpack_config(filename: &str) -> Result<ModpackConfig, String> {
 fn get_mods_dir() -> PathBuf {
     let loc = prefs::get_starbound_dir().unwrap_or(String::new());
     let mut path = Path::new(&loc).to_path_buf();
-    path.push("grayles/mods/");
+    path.push("base10/mods/");
 
     path
 }
@@ -374,26 +374,26 @@ fn write_config_file_to_dir(path: PathBuf) -> Result<(), Box<dyn Error>> {
     println!("Found config dir {:?}", path.to_str());
     let config = include_str!("modpack.config");
     let mut filepath = path.clone();
-    filepath.push("grayles-modpack.config");
+    filepath.push("base10-modpack.config");
     println!("Writing config file to {:?}", filepath.to_str());
     fs::write(filepath, config)?;
 
-    let mut grayles_dir = path.clone();
-    grayles_dir.push("../grayles");
-    if !grayles_dir.exists() {
-        fs::create_dir(grayles_dir)?;
+    let mut modpack_dir = path.clone();
+    modpack_dir.push("../base10");
+    if !modpack_dir.exists() {
+        fs::create_dir(modpack_dir)?;
     }
 
-    let mut grayles_dir = path.clone();
-    grayles_dir.push("../grayles/storage");
-    if !grayles_dir.exists() {
-        fs::create_dir(grayles_dir)?;
+    let mut modpack_dir = path.clone();
+    modpack_dir.push("../base10/storage");
+    if !modpack_dir.exists() {
+        fs::create_dir(modpack_dir)?;
     }
 
-    let mut grayles_dir = path;
-    grayles_dir.push("../grayles/mods");
-    if !grayles_dir.exists() {
-        fs::create_dir(grayles_dir)?;
+    let mut modpack_dir = path;
+    modpack_dir.push("../base10/mods");
+    if !modpack_dir.exists() {
+        fs::create_dir(modpack_dir)?;
     }
 
     Ok(())

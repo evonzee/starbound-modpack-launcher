@@ -1,6 +1,6 @@
 # Starbound Modpack Launcher
 
-This launcher was built for a modpack in use on my personal Starbound server, which then merged with Grayles (which may be reborn).  
+This launcher was built for a modpack in use on my personal Starbound server, which then merged with Grayles (which may be reborn).. but then has faded away so we're back to personal use.  
 
 It can install the modpack in a clean Starbound 1.4.4 folder.  It deploys the mods (and makes its own storage) separate from your existing config, so it won't interfere with any other custom mod configuration you might have.
 It also only downloads updated mods when new modpacks are released (~monthly)... you don't have to re-download the whole thing.
@@ -12,7 +12,7 @@ There's also a builtin integrity checker that can scan all modfiles to confirm t
 * select your starbound folder
 * Click the update button to update the modpack
 * Assuming everything went well, click launch!
-* Connect to the Grayles server at grayles.com, default starbound port.  Asset mismatch is not allowed!
+* Connect to the base10 server at sb.base10.org, default starbound port.  Asset mismatch is not allowed!
 
 ## Developing this launcher
 
