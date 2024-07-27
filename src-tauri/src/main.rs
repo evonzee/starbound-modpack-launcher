@@ -23,6 +23,8 @@ use reqwest::Client;
 use rfd::FileDialog;
 use sha2::{Sha256, Digest};
 
+const BASE_URL: &str = "https://sb.base10.org/starbound/modpack/";
+
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn load_install_location() -> Result<String, String> {
@@ -31,9 +33,10 @@ fn load_install_location() -> Result<String, String> {
 
 #[tauri::command]
 async fn get_available_version(window: tauri::Window) -> String {
+
     let res = download_file_to_mods(
         &window,
-        "https://sb.base10.org/starbound/modpack/mods.json",
+        "mods.json",
         "mods.json.new",
     )
     .await;
@@ -102,7 +105,7 @@ async fn update(window: tauri::Window) {
     if res {
         download_file_to_mods(
             &window,
-            "https://sb.base10.org/starbound/modpack/mods.json",
+            "mods.json",
             "mods.json",
         )
         .await.unwrap();
@@ -140,7 +143,7 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
     for modinfo in mods {
         log(window, format!("Downloading new mod {}", modinfo.name).as_str());
         let filename = format!("{}.pak", modinfo.name);
-        let url = format!("https://sb.base10.org/starbound/modpack/files/{}.pak", modinfo.name);
+        let url = format!("files/{}.pak", modinfo.name);
         download_file_to_mods(window, url.as_str(), filename.as_str()).await?;
     }
 
@@ -161,7 +164,7 @@ async fn check_integrity(window: tauri::Window) {
         if result.ok() != modfile.checksum {
             log(&window, format!("Checksum for {} did not match expected value. Redownloading..", modfile.name).as_str());
             let filename = format!("{}.pak", modfile.name);
-            let url = format!("https://sb.base10.org/starbound/modpack/files/{}.pak", modfile.name);
+            let url = format!("files/{}.pak", modfile.name);
             download_file_to_mods(&window, url.as_str(), filename.as_str()).await.unwrap();
         }
     }
@@ -261,14 +264,17 @@ fn remove_file_from_mods(filename: &str) -> Result<(), String> {
 
 async fn download_file_to_mods(
     window: &tauri::Window,
-    url: &str,
+    relative_url: &str,
     filename: &str,
 ) -> Result<(), String> {
     let client = Client::new();
 
+    let mut url = BASE_URL.to_string();
+    url.push_str(relative_url);
+
     // Reqwest setup
     let res = client
-        .get(url)
+        .get(&url)
         .send()
         .await
         .or(Err(format!("Failed to GET from '{}'", &url)))?;
