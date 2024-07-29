@@ -68,7 +68,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>Welcome to Grayles Starbound Modpack!</h1>
+      <h1>Welcome to Base10 Starbound Modpack!</h1>
 
       <p>Starbound location: {installLocation}</p>
       <p>Modpack version installed: {installedVersion}</p>
