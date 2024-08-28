@@ -1,7 +1,7 @@
 {
   "name": "starbound-modpack-launcher",
   "private": true,
-  "version": "0.31.0",
+  "version": "0.32.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,12 +15,12 @@
     "react-dom": "^18.3.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "1.6.0",
-    "@types/node": "^22.4.0",
-    "@types/react": "^18.3.0",
+    "@tauri-apps/cli": "1.6.1",
+    "@types/node": "^22.5.1",
+    "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
     "typescript": "^5.5.4",
-    "vite": "^5.4.1"
+    "vite": "^5.4.2"
   }
 }

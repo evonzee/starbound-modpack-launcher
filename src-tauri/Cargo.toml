@@ -1,6 +1,6 @@
 [package]
 name = "starbound-modpack-launcher"
-version = "0.31.0"
+version = "0.32.0"
 description = "Base10 starbound launcher"
 authors = ["base10"]
 license = ""
@@ -11,15 +11,15 @@ rust-version = "1.57"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.5.3", features = [] }
+tauri-build = { version = "1.5.4", features = [] }
 
 [dependencies]
-serde_json = "1.0.125"
-serde = { version = "1.0.208", features = ["derive"] }
-tauri = { version = "1.7.1", features = ["api-all"] }
+serde_json = "1.0.127"
+serde = { version = "1.0.209", features = ["derive"] }
+tauri = { version = "1.7.2", features = ["api-all"] }
 preferences = "2.0"
 rfd = "0.14.1"
-reqwest = { version = "0.12.5", features = ["stream"] }
+reqwest = { version = "0.12.7", features = ["stream"] }
 futures-util = "0.3.30"
 sha2 = "0.10.8"
 bytesize = "1.3.0"
