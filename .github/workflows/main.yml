@@ -18,11 +18,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - uses: johnyherangi/create-release-notes@main
-        id: create-release-notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 22
       - name: get version
         run: echo "PACKAGE_VERSION=$(git describe --tags)" >> $GITHUB_ENV
       - name: create release
@@ -35,7 +31,6 @@ jobs:
               repo: context.repo.repo,
               tag_name: `starbound-launcher-${process.env.PACKAGE_VERSION}`,
               name: `Base10 Starbound Modpack Launcher ${process.env.PACKAGE_VERSION}`,
-              body: ${{steps.create-release-notes.outputs.release-notes}}
               draft: true,
               prerelease: false
             })
