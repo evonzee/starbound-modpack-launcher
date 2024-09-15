@@ -6,7 +6,9 @@ if [ -z "$type" ]; then
   exit 1
 fi
 
-npm version $type
 cd src-tauri
 cargo bump $type
-git commit --amend
+cargo update
+git add . && git commit -m "bump tauri $type version"
+
+npm version $type
