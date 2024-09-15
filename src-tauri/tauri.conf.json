@@ -6,8 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "starbound-modpack-launcher",
-    "version": "0.40.0"
+    "productName": "starbound-modpack-launcher"
   },
   "tauri": {
     "allowlist": {
