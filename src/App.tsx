@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { listen } from '@tauri-apps/api/event';
 import "./App.css";
-import { Button, CircularProgress, Container, CssBaseline, Stack, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Container, CssBaseline, Stack, Typography } from "@mui/material";
 
 class StatusMessage {
   public message : string = "";
@@ -75,37 +75,38 @@ function App() {
   return (
     <Container>
       <CssBaseline/>
-      <Typography variant="h2">Base10 Starbound Modpack</Typography>
-      <Stack direction="column" spacing={2}>
-        
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Typography>Starbound location: {installLocation}</Typography>
-          <Button onClick={() => changeStarboundLocation()}>Change</Button>
-        </Stack>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="subtitle2">Modpack Version</Typography>
-          <Typography>Installed: {installedVersion}</Typography>
-          <Typography>Available: {availableVersion}</Typography>
-          {installedVersion != availableVersion ? <Button onClick={() => update()}>Update</Button> : <span>- Up to date!</span> }
-          <Button onClick={() => getAvailableVersion()}>Check for Updates</Button> 
-        </Stack>
+      <Box bgcolor={"#fff"} p={3} >
+        <Typography variant="h2">Base10 Starbound Modpack</Typography>
+        <Stack direction="column" spacing={2}>
+          
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Typography>Starbound location: {installLocation}</Typography>
+            <Button onClick={() => changeStarboundLocation()}>Change</Button>
+          </Stack>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Typography variant="subtitle2">Modpack Version</Typography>
+            <Typography>Installed: {installedVersion}</Typography>
+            <Typography>Available: {availableVersion}</Typography>
+            {installedVersion != availableVersion ? <Button onClick={() => update()}>Update</Button> : <span>- Up to date!</span> }
+            <Button onClick={() => getAvailableVersion()}>Check for Updates</Button> 
+          </Stack>
 
-        <Button variant="contained" disabled={launching} onClick={() => launch()}>Launch!</Button>
-                
-        
-        <Button onClick={() => checkIntegrity()}>
-          Check mod files integrity 
-          {checkingIntegrity && <CircularProgress/>}
-        </Button> 
-      </Stack>
-      <Typography>
-        { statusMessage }
-      </Typography>
-      <pre className="logbox">
-        { logBuffer }
-      </pre>
-      <button type="button" onClick={() => setLogBuffer([])}>Clear Log</button>
-
+          <Button variant="contained" disabled={launching} onClick={() => launch()}>Launch!</Button>
+                  
+          
+          <Button onClick={() => checkIntegrity()}>
+            Check mod files integrity 
+            {checkingIntegrity && <CircularProgress/>}
+          </Button> 
+        </Stack>
+        <Typography>
+          { statusMessage }
+        </Typography>
+        <pre className="logbox">
+          { logBuffer }
+        </pre>
+        <Button onClick={() => setLogBuffer([])}>Clear Log</Button>
+    </Box>
     </Container>
   );
 }

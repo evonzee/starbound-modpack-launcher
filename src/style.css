@@ -5,7 +5,11 @@
   font-weight: 400;
 
   color: #0f0f0f;
-  background-color: #f6f6f6;
+  background-color: #777;
+  background-image: url('./assets/screenshot-bg.png');
+  background-repeat: no-repeat;
+  background-blend-mode: color-burn;
+  background-position: top center;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
