@@ -31,6 +31,7 @@ jobs:
               repo: context.repo.repo,
               tag_name: `starbound-launcher-${process.env.PACKAGE_VERSION}`,
               name: `Base10 Starbound Modpack Launcher ${process.env.PACKAGE_VERSION}`,
+              generate_release_notes: true,
               draft: true,
               prerelease: false
             })
