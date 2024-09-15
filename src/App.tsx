@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
 import { listen } from '@tauri-apps/api/event';
 import "./App.css";
+import { Button, CircularProgress, Container, CssBaseline, Stack, Typography } from "@mui/material";
 
 class StatusMessage {
   public message : string = "";
@@ -15,6 +15,8 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("status here");
   const [logBuffer, setLogBuffer] = useState(["App log here\n", <br/>]);
   const [loaded, setLoaded] = useState(false);
+  const [checkingIntegrity, setCheckingIntegrity] = useState(false);
+  const [launching, setLaunching] = useState(false);
   
   async function loadInstallLocation() {
     setInstallLocation(await invoke("load_install_location"));
@@ -39,11 +41,15 @@ function App() {
   }
 
   async function launch() {
+    setLaunching(true);
     await invoke("launch");
+    setLaunching(false);
   }
 
   async function checkIntegrity() {
+    setCheckingIntegrity(true);
     await invoke("check_integrity");
+    setCheckingIntegrity(false);
   }
 
   async function init() {
@@ -67,29 +73,40 @@ function App() {
   init();
 
   return (
-    <div className="container">
-      <h1>Welcome to Base10 Starbound Modpack!</h1>
+    <Container>
+      <CssBaseline/>
+      <Typography variant="h2">Base10 Starbound Modpack</Typography>
+      <Stack direction="column" spacing={2}>
+        
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography>Starbound location: {installLocation}</Typography>
+          <Button onClick={() => changeStarboundLocation()}>Change</Button>
+        </Stack>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography variant="subtitle2">Modpack Version</Typography>
+          <Typography>Installed: {installedVersion}</Typography>
+          <Typography>Available: {availableVersion}</Typography>
+          {installedVersion != availableVersion ? <Button onClick={() => update()}>Update</Button> : <span>- Up to date!</span> }
+          <Button onClick={() => getAvailableVersion()}>Check for Updates</Button> 
+        </Stack>
 
-      <p>Starbound location: {installLocation}</p>
-      <p>Modpack version installed: {installedVersion}</p>
-      <p>
-        Modpack version available: {availableVersion} 
-        {installedVersion != availableVersion ? <button type="button" onClick={() => update()}>Update</button> : <span> - Up to date!</span> }
-      </p>
-
-      <button type="button" onClick={() => changeStarboundLocation()}>Change Starbound location</button>
-      <button type="button" onClick={() => getAvailableVersion()}>Check for Updates</button> 
-      <button type="button" onClick={() => checkIntegrity()}>Check mod files integrity</button> 
-      <button type="button" onClick={() => launch()}>Launch!</button>
-
-      <div>
+        <Button variant="contained" disabled={launching} onClick={() => launch()}>Launch!</Button>
+                
+        
+        <Button onClick={() => checkIntegrity()}>
+          Check mod files integrity 
+          {checkingIntegrity && <CircularProgress/>}
+        </Button> 
+      </Stack>
+      <Typography>
         { statusMessage }
-      </div>
+      </Typography>
       <pre className="logbox">
         { logBuffer }
       </pre>
       <button type="button" onClick={() => setLogBuffer([])}>Clear Log</button>
-    </div>
+
+    </Container>
   );
 }
 
