@@ -18,7 +18,7 @@ serde_json = "1.0.128"
 serde = { version = "1.0.210", features = ["derive"] }
 tauri = { version = "1.8.0", features = ["api-all"] }
 preferences = "2.0"
-rfd = "0.14.1"
+rfd = "0.15.0"
 reqwest = { version = "0.12.7", features = ["stream"] }
 futures-util = "0.3.30"
 sha2 = "0.10.8"

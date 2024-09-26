@@ -101,9 +101,9 @@ dependencies = [
 
 [[package]]
 name = "ashpd"
-version = "0.8.1"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd884d7c72877a94102c3715f3b1cd09ff4fac28221add3e57cfbe25c236d093"
+checksum = "bfe7e0dd0ac5a401dc116ed9f9119cf9decc625600474cb41f0fc0a0050abc9a"
 dependencies = [
  "async-fs",
  "async-net",
@@ -111,9 +111,13 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "rand 0.8.5",
+ "raw-window-handle 0.6.2",
  "serde",
  "serde_repr",
  "url",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols 0.32.4",
  "zbus",
 ]
 
@@ -2564,6 +2568,7 @@ checksum = "0ee638a5da3799329310ad4cfa62fbf045d5f56e3ef5ba4149e7452dcf89d5a8"
 dependencies = [
  "bitflags 2.6.0",
  "block2",
+ "dispatch",
  "libc",
  "objc2",
 ]
@@ -3419,18 +3424,17 @@ dependencies = [
 
 [[package]]
 name = "rfd"
-version = "0.14.1"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25a73a7337fc24366edfca76ec521f51877b114e42dab584008209cca6719251"
+checksum = "8af382a047821a08aa6bfc09ab0d80ff48d45d8726f7cd8e44891f7cb4a4278e"
 dependencies = [
  "ashpd",
- "block",
- "dispatch",
+ "block2",
  "js-sys",
  "log",
- "objc",
- "objc-foundation",
- "objc_id",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
  "pollster",
  "raw-window-handle 0.6.2",
  "urlencoding",
@@ -3894,7 +3898,7 @@ dependencies = [
  "futures-util",
  "preferences",
  "reqwest 0.12.7",
- "rfd 0.14.1",
+ "rfd 0.15.0",
  "serde",
  "serde_json",
  "sha2",
@@ -4982,6 +4986,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "wayland-protocols"
+version = "0.32.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b5755d77ae9040bb872a25026555ce4cb0ae75fd923e90d25fba07d81057de0"
+dependencies = [
+ "bitflags 2.6.0",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-scanner",
+]
+
+[[package]]
 name = "wayland-protocols-wlr"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4990,7 +5006,7 @@ dependencies = [
  "bitflags 2.6.0",
  "wayland-backend",
  "wayland-client",
- "wayland-protocols",
+ "wayland-protocols 0.31.2",
  "wayland-scanner",
 ]
 
@@ -5660,7 +5676,7 @@ dependencies = [
  "tree_magic_mini",
  "wayland-backend",
  "wayland-client",
- "wayland-protocols",
+ "wayland-protocols 0.31.2",
  "wayland-protocols-wlr",
 ]
 
