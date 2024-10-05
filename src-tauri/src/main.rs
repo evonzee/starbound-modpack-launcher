@@ -21,7 +21,6 @@ use bytesize::ByteSize;
 use futures_util::StreamExt;
 use modinfo::ModpackConfig;
 use reqwest::Client;
-use rfd::FileDialog;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter};
 
@@ -48,44 +47,39 @@ fn get_installed_version() -> String {
     get_modpack_version("mods.json")
 }
 
+
 #[tauri::command]
-fn change_starbound_location(window: AppHandle) -> Result<String, String> {
-    let initial_dir = match load_install_location() {
-        Ok(loc) => loc,
-        Err(_) => "/".to_string(),
-    };
+async fn set_install_location(app: AppHandle, location: String) -> Result<String, String> {
+    let path = Path::new(&location);
+    if !path.exists() {
+        return Err("Path does not exist!".into());
+    }
 
-    if let Some(folder) = FileDialog::new().set_directory(initial_dir).pick_folder() {
-        match folder.to_str() {
-            None => (),
-            Some(value) => {
-                match prefs::set_starbound_dir(value.into()) {
-                    Ok(()) => (),
-                    Err(_) => {
-                        log(&window, "Couldn't find starbound in the selected location!");
-                        return Err("Failed to save preferences file!".into());
-                    }
-                }
-
-                match scan_and_write_config_file() {
-                    Ok(()) => (),
-                    Err(err) => {
-                        log(
-                            &window,
-                            format!(
-                                "Couldn't write modpack config file in the selected location! {}",
-                                err
-                            )
-                            .as_str(),
-                        );
-                        return Err("Failed to write Starbound config file!".into());
-                    }
-                }
-            }
+    match prefs::set_starbound_dir(location.into()) {
+        Ok(()) => (),
+        Err(_) => {
+            log(&app, "Couldn't find starbound in the selected location!");
+            return Err("Failed to save preferences file!".into());
         }
-    };
+    }
+
+    match scan_and_write_config_file() {
+        Ok(()) => (),
+        Err(err) => {
+            log(
+                &app,
+                format!(
+                    "Couldn't write modpack config file in the selected location! {}",
+                    err
+                )
+                .as_str(),
+            );
+            return Err("Failed to write Starbound config file!".into());
+        }
+    }
 
     load_install_location()
+
 }
 
 #[tauri::command]
@@ -493,7 +487,7 @@ fn main() {
             load_install_location,
             get_available_version,
             get_installed_version,
-            change_starbound_location,
+            set_install_location,
             update,
             check_integrity,
             launch
