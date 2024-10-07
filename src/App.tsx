@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 import "./App.css";
 import { Box, Button, CircularProgress, Container, CssBaseline, Stack, Typography } from "@mui/material";
-
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 class StatusMessage {
   public message : string = "";
 }
@@ -32,7 +32,13 @@ function App() {
   }
 
   async function changeStarboundLocation() {
-    setInstallLocation(await invoke("change_starbound_location"));
+    const file = await openDialog({
+      multiple: false,
+      directory: true,
+    });
+    console.log(file);
+    await invoke("set_install_location", { location: file });
+    await refresh();
   }
 
   async function update() {
@@ -64,11 +70,16 @@ function App() {
         setStatusMessage(event.payload.message);
         setLogBuffer(old => [event.payload.message, <br/>, ...old]);
       });
-      await loadInstallLocation();
-      await getInstalledVersion();
-      await getAvailableVersion();
+      await refresh();
     }
   }
+
+  async function refresh() {
+    await loadInstallLocation();
+    await getInstalledVersion();
+    await getAvailableVersion();
+  }
+    
   
   init();
 

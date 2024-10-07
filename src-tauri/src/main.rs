@@ -13,7 +13,7 @@ use std::{
     env,
     error::Error,
     fs::{self, File},
-    io::{Write, self},
+    io::{self, Write},
     path::{Path, PathBuf},
 };
 
@@ -21,8 +21,8 @@ use bytesize::ByteSize;
 use futures_util::StreamExt;
 use modinfo::ModpackConfig;
 use reqwest::Client;
-use rfd::FileDialog;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
+use tauri::{AppHandle, Emitter};
 
 const BASE_URL: &str = "https://sb.base10.org/starbound/modpack/";
 
@@ -33,14 +33,8 @@ fn load_install_location() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn get_available_version(window: tauri::Window) -> String {
-
-    let res = download_file_to_mods(
-        &window,
-        "mods.json",
-        "mods.json.new",
-    )
-    .await;
+async fn get_available_version(window: AppHandle) -> String {
+    let res = download_file_to_mods(&window, "mods.json", "mods.json.new").await;
 
     match res {
         Ok(()) => get_modpack_version("mods.json.new"),
@@ -53,74 +47,77 @@ fn get_installed_version() -> String {
     get_modpack_version("mods.json")
 }
 
+
 #[tauri::command]
-fn change_starbound_location(window: tauri::Window) -> Result<String, String> {
-    let initial_dir = match load_install_location() {
-        Ok(loc) => loc,
-        Err(_) => "/".to_string(),
-    };
+async fn set_install_location(app: AppHandle, location: String) -> Result<String, String> {
+    let path = Path::new(&location);
+    if !path.exists() {
+        return Err("Path does not exist!".into());
+    }
 
-    if let Some(folder) = FileDialog::new().set_directory(initial_dir).pick_folder() {
-        match folder.to_str() {
-            None => (),
-            Some(value) => {
-                match prefs::set_starbound_dir(value.into()) {
-                    Ok(()) => (),
-                    Err(_) => {
-                        log(&window, "Couldn't find starbound in the selected location!");
-                        return Err("Failed to save preferences file!".into());
-                    }
-                }
-
-                match scan_and_write_config_file() {
-                    Ok(()) => (),
-                    Err(err) => {
-                        log(
-                            &window,
-                            format!(
-                                "Couldn't write modpack config file in the selected location! {}",
-                                err
-                            )
-                            .as_str(),
-                        );
-                        return Err("Failed to write Starbound config file!".into());
-                    }
-                }
-            }
+    match prefs::set_starbound_dir(location.into()) {
+        Ok(()) => (),
+        Err(_) => {
+            log(&app, "Couldn't find starbound in the selected location!");
+            return Err("Failed to save preferences file!".into());
         }
-    };
+    }
+
+    match scan_and_write_config_file() {
+        Ok(()) => (),
+        Err(err) => {
+            log(
+                &app,
+                format!(
+                    "Couldn't write modpack config file in the selected location! {}",
+                    err
+                )
+                .as_str(),
+            );
+            return Err("Failed to write Starbound config file!".into());
+        }
+    }
 
     load_install_location()
+
 }
 
 #[tauri::command]
-async fn update(window: tauri::Window) {
+async fn update(window: AppHandle) {
     log(&window, "Starting update process");
 
     let config = get_modpack_config("mods.json.new").unwrap();
     let oldconfig = get_modpack_config("mods.json").ok();
 
     remove_old_mods(&window, &oldconfig, &config);
-    let res = download_new_mods(&window, &oldconfig, &config).await.unwrap_or(false);
+    let res = download_new_mods(&window, &oldconfig, &config)
+        .await
+        .unwrap_or(false);
 
     if res {
-        download_file_to_mods(
-            &window,
-            "mods.json",
-            "mods.json",
-        )
-        .await.unwrap();
+        download_file_to_mods(&window, "mods.json", "mods.json")
+            .await
+            .unwrap();
     }
 }
 
-fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) {
+fn remove_old_mods(
+    window: &AppHandle,
+    oldconfig: &Option<ModpackConfig>,
+    config: &ModpackConfig,
+) {
     if let Some(old) = oldconfig {
         for modinfo in old.mods.iter() {
             if !config.mods.iter().any(|newmod| {
-                modinfo.name == newmod.name && modinfo.last_change == newmod.last_change && modinfo.checksum == newmod.checksum
+                modinfo.name == newmod.name
+                    && modinfo.last_change == newmod.last_change
+                    && modinfo.checksum == newmod.checksum
             }) {
                 // remove mod
-                log(window, format!("Removing old mod {}", modinfo.name).as_str());
+                log(
+                    window,
+                    format!("Removing old mod {}", modinfo.name).as_str(),
+                );
                 if remove_file_from_mods(format!("{}.pak", modinfo.name).as_str()).is_err() {
                     log(window, "Failed to remove file!");
                 }
@@ -130,19 +127,27 @@ fn remove_old_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, co
     log(window, "Finished removing old mods");
 }
 
-async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) -> Result<bool, Box<dyn Error>> {
-    let mods = config.mods.iter()
-        .filter(|newmod| {
-            if let Some(old) = oldconfig {
-                return !old.mods.iter().any(|modinfo| {
-                    modinfo.name == newmod.name && modinfo.last_change == newmod.last_change && modinfo.checksum == newmod.checksum
-                })
-            }
-            true
-        });
-    
+async fn download_new_mods(
+    window: &AppHandle,
+    oldconfig: &Option<ModpackConfig>,
+    config: &ModpackConfig,
+) -> Result<bool, Box<dyn Error>> {
+    let mods = config.mods.iter().filter(|newmod| {
+        if let Some(old) = oldconfig {
+            return !old.mods.iter().any(|modinfo| {
+                modinfo.name == newmod.name
+                    && modinfo.last_change == newmod.last_change
+                    && modinfo.checksum == newmod.checksum
+            });
+        }
+        true
+    });
+
     for modinfo in mods {
-        log(window, format!("Downloading new mod {}", modinfo.name).as_str());
+        log(
+            window,
+            format!("Downloading new mod {}", modinfo.name).as_str(),
+        );
         let filename = format!("{}.pak", modinfo.name);
         let url = format!("files/{}.pak", modinfo.name);
         download_file_to_mods(window, url.as_str(), filename.as_str()).await?;
@@ -152,21 +157,30 @@ async fn download_new_mods(window: &tauri::Window, oldconfig: &Option<ModpackCon
 }
 
 #[tauri::command]
-async fn check_integrity(window: tauri::Window) {
+async fn check_integrity(window: AppHandle) {
     log(&window, "Checking mod files integrity..");
     let config = match get_modpack_config("mods.json") {
         Ok(val) => val,
-        Err(_) => return
+        Err(_) => return,
     };
 
     for modfile in config.mods {
         log(&window, format!("Checking {}..", modfile.name).as_str());
         let result = checksum_modfile(modfile.name.as_str());
         if result.ok() != modfile.checksum {
-            log(&window, format!("Checksum for {} did not match expected value. Redownloading..", modfile.name).as_str());
+            log(
+                &window,
+                format!(
+                    "Checksum for {} did not match expected value. Redownloading..",
+                    modfile.name
+                )
+                .as_str(),
+            );
             let filename = format!("{}.pak", modfile.name);
             let url = format!("files/{}.pak", modfile.name);
-            download_file_to_mods(&window, url.as_str(), filename.as_str()).await.unwrap();
+            download_file_to_mods(&window, url.as_str(), filename.as_str())
+                .await
+                .unwrap();
         }
     }
     log(&window, "Completed checking mod integrity.");
@@ -180,25 +194,25 @@ fn checksum_modfile(name: &str) -> io::Result<String> {
     let mut file = File::open(dir)?;
     io::copy(&mut file, &mut hasher)?;
     let hash_bytes = hasher.finalize();
-    
+
     Ok(format!("{hash_bytes:X}"))
 }
 
 #[tauri::command]
-async fn launch(window: tauri::Window) {
+async fn launch(window: AppHandle) {
     let initial_dir = match load_install_location() {
         Ok(loc) => Path::new(&loc).to_path_buf(),
         Err(_) => {
             log(&window, "Starbound location is not set; cannot launch");
             return;
-        },
+        }
     };
     log(&window, "Launching starbound...");
     log(&window, launch_starbound(initial_dir).await.as_str());
 }
 
 #[cfg(target_os = "macos")]
-async fn launch_starbound(mut path: PathBuf) ->  String {
+async fn launch_starbound(mut path: PathBuf) -> String {
     path.push("osx");
     let executable = "Starbound.app/Contents/MacOS/starbound";
     let env = HashMap::new();
@@ -206,16 +220,22 @@ async fn launch_starbound(mut path: PathBuf) ->  String {
     run_starbound(path, executable, env)
 }
 #[cfg(target_os = "linux")]
-async fn launch_starbound(mut path: PathBuf) -> String  {
+async fn launch_starbound(mut path: PathBuf) -> String {
     path.push("linux");
     let executable = "starbound";
     let mut env = HashMap::new();
-    env.insert("LD_LIBRARY_PATH", format!("./:{}", env::var("LD_LIBRARY_PATH").unwrap_or("".to_string()))); 
+    env.insert(
+        "LD_LIBRARY_PATH",
+        format!(
+            "./:{}",
+            env::var("LD_LIBRARY_PATH").unwrap_or("".to_string())
+        ),
+    );
 
     run_starbound(path, executable, env)
 }
 #[cfg(target_os = "windows")]
-async fn launch_starbound(mut path: PathBuf) ->  String  {
+async fn launch_starbound(mut path: PathBuf) -> String {
     path.push("win64");
     let executable = "starbound.exe";
     let env = HashMap::new();
@@ -223,7 +243,11 @@ async fn launch_starbound(mut path: PathBuf) ->  String  {
     run_starbound(path, executable, env)
 }
 
-fn run_starbound(mut path: PathBuf, executable: &str, env: std::collections::HashMap<&str, String>) -> String {
+fn run_starbound(
+    mut path: PathBuf,
+    executable: &str,
+    env: std::collections::HashMap<&str, String>,
+) -> String {
     let cwd = path.clone();
 
     path.push(executable);
@@ -233,18 +257,25 @@ fn run_starbound(mut path: PathBuf, executable: &str, env: std::collections::Has
     command.arg("base10-modpack.config");
 
     for ele in env {
-        command.env(ele.0, ele.1);    
+        command.env(ele.0, ele.1);
     }
 
     let exitstatus = match command.spawn() {
         Ok(mut child) => child.wait(),
-        Err(_) => return "Error starting starbound!".to_string()
+        Err(_) => return "Error starting starbound!".to_string(),
     };
 
     match exitstatus {
-        Ok(status) => if status.success() { "Starbound exited OK" } else { "Starbound exited abnormally!" }
+        Ok(status) => {
+            if status.success() {
+                "Starbound exited OK"
+            } else {
+                "Starbound exited abnormally!"
+            }
+        }
         Err(_) => "Error getting starbound exit code!",
-    }.to_string()
+    }
+    .to_string()
 }
 
 #[derive(Debug)]
@@ -264,7 +295,7 @@ fn remove_file_from_mods(filename: &str) -> Result<(), String> {
 }
 
 async fn download_file_to_mods(
-    window: &tauri::Window,
+    window: &AppHandle,
     relative_url: &str,
     filename: &str,
 ) -> Result<(), String> {
@@ -309,7 +340,9 @@ async fn download_file_to_mods(
             window,
             format!(
                 "Downloading {}: {} of {} bytes",
-                filename, ByteSize(downloaded), total_bytesize
+                filename,
+                ByteSize(downloaded),
+                total_bytesize
             )
             .as_str(),
         );
@@ -413,7 +446,7 @@ struct StatusMessage {
     message: String,
 }
 
-fn set_status(window: &tauri::Window, message: &str) {
+fn set_status(window: &AppHandle, message: &str) {
     let result = window.emit(
         "status",
         StatusMessage {
@@ -426,7 +459,7 @@ fn set_status(window: &tauri::Window, message: &str) {
     };
 }
 
-fn log(window: &tauri::Window, message: &str) {
+fn log(window: &AppHandle, message: &str) {
     let result = window.emit(
         "log",
         StatusMessage {
@@ -441,11 +474,20 @@ fn log(window: &tauri::Window, message: &str) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             load_install_location,
             get_available_version,
             get_installed_version,
-            change_starbound_location,
+            set_install_location,
             update,
             check_integrity,
             launch
