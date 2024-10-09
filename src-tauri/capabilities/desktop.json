@@ -12,6 +12,7 @@
     "fs:default",
     "os:default",
     "http:default",
-    "process:default"
+    "process:default",
+    "updater:default"
   ]
 }
