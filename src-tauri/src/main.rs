@@ -47,7 +47,6 @@ fn get_installed_version() -> String {
     get_modpack_version("mods.json")
 }
 
-
 #[tauri::command]
 async fn set_install_location(app: AppHandle, location: String) -> Result<String, String> {
     let path = Path::new(&location);
@@ -79,7 +78,6 @@ async fn set_install_location(app: AppHandle, location: String) -> Result<String
     }
 
     load_install_location()
-
 }
 
 #[tauri::command]
@@ -101,11 +99,7 @@ async fn update(window: AppHandle) {
     }
 }
 
-fn remove_old_mods(
-    window: &AppHandle,
-    oldconfig: &Option<ModpackConfig>,
-    config: &ModpackConfig,
-) {
+fn remove_old_mods(window: &AppHandle, oldconfig: &Option<ModpackConfig>, config: &ModpackConfig) {
     if let Some(old) = oldconfig {
         for modinfo in old.mods.iter() {
             if !config.mods.iter().any(|newmod| {
@@ -474,6 +468,7 @@ fn log(window: &AppHandle, message: &str) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())

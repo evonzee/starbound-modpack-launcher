@@ -5,6 +5,9 @@
     "windows",
     "linux"
   ],
+  "windows": [
+    "*"
+  ],
   "permissions": [
     "global-shortcut:default",
     "dialog:default",
@@ -12,6 +15,7 @@
     "fs:default",
     "os:default",
     "http:default",
-    "process:default"
+    "process:default",
+    "updater:default"
   ]
 }

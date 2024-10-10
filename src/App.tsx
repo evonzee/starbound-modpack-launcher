@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 import "./App.css";
 import { Box, Button, CircularProgress, Container, CssBaseline, Stack, Typography } from "@mui/material";
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 class StatusMessage {
-  public message : string = "";
+  public message: string = "";
 }
 
 function App() {
@@ -13,11 +15,17 @@ function App() {
   const [installedVersion, setInstalledVersion] = useState("None");
   const [availableVersion, setAvailableVersion] = useState("Checking...");
   const [statusMessage, setStatusMessage] = useState("status here");
-  const [logBuffer, setLogBuffer] = useState(["App log here\n", <br/>]);
+  const [logBuffer, setLogBuffer] = useState(["App log here\n", <br />]);
   const [loaded, setLoaded] = useState(false);
   const [checkingIntegrity, setCheckingIntegrity] = useState(false);
   const [launching, setLaunching] = useState(false);
-  
+
+
+  async function appendLog(message: string) {
+    setStatusMessage(message);
+    setLogBuffer(old => [message, <br />, ...old]);
+  }
+
   async function loadInstallLocation() {
     setInstallLocation(await invoke("load_install_location"));
   }
@@ -58,8 +66,39 @@ function App() {
     setCheckingIntegrity(false);
   }
 
+  async function selfUpdate() {
+    appendLog("Checking for updates...");
+    const update = await check();
+    if (update) {
+      appendLog(
+        `found update ${update.version} from ${update.date} with notes ${update.body}`
+      );
+      let downloaded = 0;
+      let contentLength = 0;
+      // alternatively we could also call update.download() and update.install() separately
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case 'Started':
+            contentLength = event.data.contentLength ?? 0;
+            appendLog(`started downloading ${event.data.contentLength} bytes`);
+            break;
+          case 'Progress':
+            downloaded += event.data.chunkLength;
+            appendLog(`downloaded ${downloaded} from ${contentLength}`);
+            break;
+          case 'Finished':
+            appendLog('download finished');
+            break;
+        }
+      });
+
+      console.log('update installed');
+      await relaunch();
+    }
+  }
+
   async function init() {
-    if(!loaded) {
+    if (!loaded) {
       setLoaded(true);
       await listen<StatusMessage>('status', (event) => {
         console.log("got event ", event);
@@ -67,8 +106,7 @@ function App() {
       });
       await listen<StatusMessage>('log', (event) => {
         console.log("got event ", event);
-        setStatusMessage(event.payload.message);
-        setLogBuffer(old => [event.payload.message, <br/>, ...old]);
+        appendLog(event.payload.message);
       });
       await refresh();
     }
@@ -79,17 +117,27 @@ function App() {
     await getInstalledVersion();
     await getAvailableVersion();
   }
-    
-  
-  init();
+
+  useEffect(() => {
+    const startup = async function() {
+      try {
+        await selfUpdate();
+      } catch (e) {
+        appendLog(`Error checking for updates: ${e}`);
+      }
+      await init();
+    };
+
+    startup();
+  }, []);
 
   return (
     <Container>
-      <CssBaseline/>
+      <CssBaseline />
       <Box bgcolor={"#fff"} p={3} >
         <Typography variant="h2">Base10 Starbound Modpack</Typography>
         <Stack direction="column" spacing={2}>
-          
+
           <Stack direction="row" spacing={2} alignItems="center">
             <Typography>Starbound location: {installLocation}</Typography>
             <Button onClick={() => changeStarboundLocation()}>Change</Button>
@@ -98,26 +146,26 @@ function App() {
             <Typography variant="subtitle2">Modpack Version</Typography>
             <Typography>Installed: {installedVersion}</Typography>
             <Typography>Available: {availableVersion}</Typography>
-            {installedVersion != availableVersion ? <Button onClick={() => update()}>Update</Button> : <span>- Up to date!</span> }
-            <Button onClick={() => getAvailableVersion()}>Check for Updates</Button> 
+            {installedVersion != availableVersion ? <Button onClick={() => update()}>Update</Button> : <span>- Up to date!</span>}
+            <Button onClick={() => getAvailableVersion()}>Check for Updates</Button>
           </Stack>
 
           <Button variant="contained" disabled={launching} onClick={() => launch()}>Launch!</Button>
-                  
-          
+
+
           <Button onClick={() => checkIntegrity()}>
-            Check mod files integrity 
-            {checkingIntegrity && <CircularProgress/>}
-          </Button> 
+            Check mod files integrity
+            {checkingIntegrity && <CircularProgress />}
+          </Button>
         </Stack>
         <Typography>
-          { statusMessage }
+          {statusMessage}
         </Typography>
         <pre className="logbox">
-          { logBuffer }
+          {logBuffer}
         </pre>
         <Button onClick={() => setLogBuffer([])}>Clear Log</Button>
-    </Box>
+      </Box>
     </Container>
   );
 }
