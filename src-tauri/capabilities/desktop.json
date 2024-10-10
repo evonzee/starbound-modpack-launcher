@@ -5,6 +5,9 @@
     "windows",
     "linux"
   ],
+  "windows": [
+    "*"
+  ],
   "permissions": [
     "global-shortcut:default",
     "dialog:default",
