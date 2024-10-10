@@ -37,12 +37,20 @@
       "deb": {
         "depends": []
       }
-    }
+    }   ,
+    "createUpdaterArtifacts": true
   },
   "productName": "starbound-modpack-launcher",
   "mainBinaryName": "starbound-modpack-launcher",
   "identifier": "starbound-launcher.base10.org",
-  "plugins": {},
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRDMkY1QkYyNTY1NjM3NkQKUldSdE4xWlc4bHN2VEltcEx2cGkrQVI4YVhYSW9vcjcrMHA0SSt1QU43bm9XRUJFckNEZVhYalcK",
+      "endpoints": [
+        "https://github.com/evonzee/starbound-modpack-launcher/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "app": {
     "windows": [
       {
