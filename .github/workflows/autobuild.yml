@@ -1,9 +1,10 @@
 name: 'Autobuild'
 
 on:  
+  pull_request:
   push:
     branches:
-      - '*'
+      - main
 
 jobs:
 
