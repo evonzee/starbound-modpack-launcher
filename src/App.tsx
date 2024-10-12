@@ -15,7 +15,7 @@ function App() {
   const [installedVersion, setInstalledVersion] = useState("None");
   const [availableVersion, setAvailableVersion] = useState("Checking...");
   const [statusMessage, setStatusMessage] = useState("status here");
-  const [logBuffer, setLogBuffer] = useState(["App log here\n", <br />]);
+  const [logBuffer, setLogBuffer] = useState(["App log here\n", <br key="32445" />]);
   const [loaded, setLoaded] = useState(false);
   const [checkingIntegrity, setCheckingIntegrity] = useState(false);
   const [launching, setLaunching] = useState(false);
@@ -23,7 +23,8 @@ function App() {
 
   async function appendLog(message: string) {
     setStatusMessage(message);
-    setLogBuffer(old => [message, <br />, ...old]);
+    const stamp = new Date().toLocaleTimeString();
+    setLogBuffer(old => [message, <br key={stamp} />, ...old]);
   }
 
   async function loadInstallLocation() {
@@ -44,7 +45,12 @@ function App() {
       multiple: false,
       directory: true,
     });
-    console.log(file);
+    
+    // did the user cancel?
+    if(file === undefined || file === null) {
+      return;
+    }
+
     await invoke("set_install_location", { location: file });
     await refresh();
   }
@@ -64,6 +70,7 @@ function App() {
     setCheckingIntegrity(true);
     await invoke("check_integrity");
     setCheckingIntegrity(false);
+    appendLog("Integrity check completed.");
   }
 
   async function selfUpdate() {
@@ -95,6 +102,7 @@ function App() {
       console.log('update installed');
       await relaunch();
     }
+    appendLog("Ready");
   }
 
   async function init() {
@@ -134,7 +142,7 @@ function App() {
   return (
     <Container>
       <CssBaseline />
-      <Box bgcolor={"#fff"} p={3} >
+      <Box p={3} >
         <Typography variant="h2">Base10 Starbound Modpack</Typography>
         <Stack direction="column" spacing={2}>
 
@@ -161,9 +169,9 @@ function App() {
         <Typography>
           {statusMessage}
         </Typography>
-        <pre className="logbox">
+        <Box sx={{ backgroundColor: "#322222", height: "350px", overflow: "scroll" }}>
           {logBuffer}
-        </pre>
+        </Box>
         <Button onClick={() => setLogBuffer([])}>Clear Log</Button>
       </Box>
     </Container>
