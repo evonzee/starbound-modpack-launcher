@@ -34,4 +34,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          includeUpdaterJson: false # don't include updaters on autobuild since secret isn't available
+          args: --config src-tauri/tauri.conf.no-updater.json # don't include updaters on autobuild since secret isn't available
