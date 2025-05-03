@@ -1,6 +1,6 @@
 [package]
 name = "starbound-modpack-launcher"
-version = "0.60.0"
+version = "0.75.1"
 description = "Base10 starbound launcher"
 authors = ["base10"]
 license = "MIT"
