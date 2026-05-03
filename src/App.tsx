@@ -134,15 +134,23 @@ function App() {
   return (
     <Container>
       <CssBaseline />
-      <Box bgcolor={"#fff"} p={3} >
+      <Box
+        sx={{
+          bgcolor: "#fff",
+          p: 3
+        }}>
         <Typography variant="h2">Base10 Starbound Modpack</Typography>
         <Stack direction="column" spacing={2}>
 
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={2} sx={{
+            alignItems: "center"
+          }}>
             <Typography>Starbound location: {installLocation}</Typography>
             <Button onClick={() => changeStarboundLocation()}>Change</Button>
           </Stack>
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={2} sx={{
+            alignItems: "center"
+          }}>
             <Typography variant="subtitle2">Modpack Version</Typography>
             <Typography>Installed: {installedVersion}</Typography>
             <Typography>Available: {availableVersion}</Typography>

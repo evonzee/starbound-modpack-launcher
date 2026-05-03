@@ -13,7 +13,7 @@ use std::{
     env,
     error::Error,
     fs::{self, File},
-    io::{self, Write},
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -186,10 +186,15 @@ fn checksum_modfile(name: &str) -> io::Result<String> {
 
     let mut hasher = Sha256::new();
     let mut file = File::open(dir)?;
-    io::copy(&mut file, &mut hasher)?;
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = file.read(&mut buf)?;
+        if n == 0 { break; }
+        hasher.update(&buf[..n]);
+    }
     let hash_bytes = hasher.finalize();
 
-    Ok(format!("{hash_bytes:X}"))
+    Ok(hash_bytes.iter().map(|b| format!("{b:02X}")).collect())
 }
 
 #[tauri::command]
