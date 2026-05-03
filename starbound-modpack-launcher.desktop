@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Starbound Modpack Launcher
+Comment=Base10 Starbound Modpack Launcher
+Exec=$(HOME)/.apps/starbound-modpack-launcher
+Icon=icons/128x128.png
+Terminal=false
+StartupNotify=true
+Categories=Game;Utility;
+Keywords=starbound;launcher;modpack;game;
+MimeType=
+StartupWMClass=starbound-modpack-launcher
