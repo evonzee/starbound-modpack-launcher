@@ -23,7 +23,7 @@ jobs:
         run: echo "PACKAGE_VERSION=$(git describe --tags)" >> $GITHUB_ENV
       - name: create release
         id: create-release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data } = await github.rest.repos.createRelease({
@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: publish release
         id: publish-release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           release_id: ${{ needs.create-release.outputs.release_id }}
         with:
