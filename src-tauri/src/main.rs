@@ -24,7 +24,7 @@ use reqwest::Client;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter};
 
-const BASE_URL: &str = "https://sb.base10.org/starbound/modpack/";
+const BASE_URL: &str = "https://sbfiles.base10.org/";
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -143,7 +143,7 @@ async fn download_new_mods(
             format!("Downloading new mod {}", modinfo.name).as_str(),
         );
         let filename = format!("{}.pak", modinfo.name);
-        let url = format!("files/{}.pak", modinfo.name);
+        let url = format!("/{}.pak", modinfo.name);
         download_file_to_mods(window, url.as_str(), filename.as_str()).await?;
     }
 
