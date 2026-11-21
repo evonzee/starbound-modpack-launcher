@@ -28,3 +28,14 @@ pub fn set_starbound_dir(value: String) -> Result<(), PreferencesError> {
 
     settings.save(&APP_INFO, SETTINGS_KEY)
 }
+
+pub fn get_string(key: &str) -> Option<String> {
+    load_settings().get(key).cloned()
+}
+
+pub fn set_string(key: &str, value: String) -> Result<(), PreferencesError> {
+    let mut settings = load_settings();
+    settings.insert(key.into(), value);
+
+    settings.save(&APP_INFO, SETTINGS_KEY)
+}

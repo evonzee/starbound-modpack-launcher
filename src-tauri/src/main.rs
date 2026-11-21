@@ -5,6 +5,7 @@
 
 mod modinfo;
 mod prefs;
+mod sync;
 
 use core::fmt;
 use std::{
@@ -198,20 +199,39 @@ fn checksum_modfile(name: &str) -> io::Result<String> {
 }
 
 #[tauri::command]
-async fn launch(window: AppHandle) {
+async fn launch(window: AppHandle) -> Result<(), String> {
     let initial_dir = match load_install_location() {
         Ok(loc) => Path::new(&loc).to_path_buf(),
         Err(_) => {
             log(&window, "Starbound location is not set; cannot launch");
-            return;
+            return Ok(());
         }
     };
+
+    let session = match sync::commands::begin(&window).await {
+        Ok(s) => s,
+        Err(msg) => {
+            log(&window, &msg);
+            return Ok(());
+        }
+    };
+    let keep_alive = session.as_ref().map(|s| s.keep_alive());
+
     log(&window, "Launching starbound...");
-    log(&window, launch_starbound(initial_dir).await.as_str());
+    let result = tauri::async_runtime::spawn_blocking(move || launch_starbound(initial_dir))
+        .await
+        .unwrap_or_else(|_| "Launch task failed".to_string());
+    log(&window, result.as_str());
+
+    drop(keep_alive);
+    if let Some(session) = session {
+        session.finish(&window).await;
+    }
+    Ok(())
 }
 
 #[cfg(target_os = "macos")]
-async fn launch_starbound(mut path: PathBuf) -> String {
+fn launch_starbound(mut path: PathBuf) -> String {
     path.push("osx");
     let executable = "Starbound.app/Contents/MacOS/starbound";
     let env = HashMap::new();
@@ -219,7 +239,7 @@ async fn launch_starbound(mut path: PathBuf) -> String {
     run_starbound(path, executable, env)
 }
 #[cfg(target_os = "linux")]
-async fn launch_starbound(mut path: PathBuf) -> String {
+fn launch_starbound(mut path: PathBuf) -> String {
     path.push("linux");
     let executable = "starbound";
     let mut env = HashMap::new();
@@ -234,7 +254,7 @@ async fn launch_starbound(mut path: PathBuf) -> String {
     run_starbound(path, executable, env)
 }
 #[cfg(target_os = "windows")]
-async fn launch_starbound(mut path: PathBuf) -> String {
+fn launch_starbound(mut path: PathBuf) -> String {
     path.push("win64");
     let executable = "starbound.exe";
     let env = HashMap::new();
@@ -367,7 +387,7 @@ fn get_modpack_version(filename: &str) -> String {
     }
 }
 
-fn get_modpack_config(filename: &str) -> Result<ModpackConfig, String> {
+pub(crate) fn get_modpack_config(filename: &str) -> Result<ModpackConfig, String> {
     let mut path = get_mods_dir();
     path.push(filename);
     if let Some(configpath) = path.to_str() {
@@ -490,7 +510,15 @@ fn main() {
             set_install_location,
             update,
             check_integrity,
-            launch
+            launch,
+            sync::commands::sync_get_settings,
+            sync::commands::sync_set_settings,
+            sync::commands::sync_test_connection,
+            sync::commands::sync_status,
+            sync::commands::sync_now,
+            sync::commands::sync_resolve,
+            sync::commands::sync_history,
+            sync::commands::sync_restore
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

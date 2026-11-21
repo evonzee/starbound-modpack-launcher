@@ -6,6 +6,7 @@ import { Box, Button, CircularProgress, Container, CssBaseline, Stack, Typograph
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
+import SyncDialog from './SyncDialog';
 class StatusMessage {
   public message: string = "";
 }
@@ -19,6 +20,7 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [checkingIntegrity, setCheckingIntegrity] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
 
 
   async function appendLog(message: string) {
@@ -108,6 +110,7 @@ function App() {
         console.log("got event ", event);
         appendLog(event.payload.message);
       });
+      await listen('sync-conflicts', () => setSyncOpen(true));
       await refresh();
     }
   }
@@ -161,6 +164,8 @@ function App() {
           <Button variant="contained" disabled={launching} onClick={() => launch()}>Launch!</Button>
 
 
+          <Button onClick={() => setSyncOpen(true)}>Cloud sync (players &amp; ships)</Button>
+
           <Button onClick={() => checkIntegrity()}>
             Check mod files integrity
             {checkingIntegrity && <CircularProgress />}
@@ -174,6 +179,7 @@ function App() {
         </pre>
         <Button onClick={() => setLogBuffer([])}>Clear Log</Button>
       </Box>
+      <SyncDialog open={syncOpen} onClose={() => setSyncOpen(false)} />
     </Container>
   );
 }
