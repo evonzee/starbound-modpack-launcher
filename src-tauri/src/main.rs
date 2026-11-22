@@ -503,6 +503,10 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .setup(|app| {
+            prefs::init(app.handle())?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             load_install_location,
             get_available_version,

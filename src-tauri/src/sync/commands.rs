@@ -53,11 +53,10 @@ pub fn sync_get_settings() -> Settings {
 
 #[tauri::command]
 pub fn sync_set_settings(settings: Settings) -> Result<(), String> {
-    let e = |e: preferences::PreferencesError| e.to_string();
-    prefs::set_string("sync_url", settings.url.trim().to_string()).map_err(e)?;
-    prefs::set_string("sync_token", settings.token.trim().to_string()).map_err(e)?;
-    prefs::set_string("sync_enabled", settings.enabled.to_string()).map_err(e)?;
-    prefs::set_string("machine_name", settings.machine.trim().chars().take(64).collect()).map_err(e)
+    prefs::set_string("sync_url", settings.url.trim().to_string())?;
+    prefs::set_string("sync_token", settings.token.trim().to_string())?;
+    prefs::set_string("sync_enabled", settings.enabled.to_string())?;
+    prefs::set_string("machine_name", settings.machine.trim().chars().take(64).collect())
 }
 
 /// `Err` means "not configured": callers treat that as sync silently off.
