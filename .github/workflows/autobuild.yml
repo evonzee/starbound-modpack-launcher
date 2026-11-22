@@ -31,7 +31,7 @@ jobs:
                                   libegl1-mesa-dev libgl1-mesa-dev libxcb-dri3-dev libdrm-dev
       - name: install app dependencies and build it
         run: npm ci && npm run build
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
